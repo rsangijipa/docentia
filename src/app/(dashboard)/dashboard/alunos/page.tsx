@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Users, Search, Plus, Loader2, Trash2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,15 +31,11 @@ async function readPayload(response: Response) {
 
 export default function AlunosPage() {
   const { user } = useAuth();
-  const [alunos, setAlunos] = React.useState<any[]>([]);
-  const [turmas, setTurmas] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = React.useState('');
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<{ id: string; nome: string } | null>(null);
-  const [deleting, setDeleting] = React.useState(false);
 
   const [newStudent, setNewStudent] = React.useState({
     nome: '',
@@ -48,90 +45,83 @@ export default function AlunosPage() {
     observacoes: '',
   });
 
-  const fetchData = async () => {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      const [alunosResponse, turmasResponse] = await Promise.all([
-        fetch('/api/students', { credentials: 'include', cache: 'no-store' }),
-        fetch('/api/turmas', { credentials: 'include', cache: 'no-store' }),
-      ]);
-      const [alunosPayload, turmasPayload] = await Promise.all([
-        readPayload(alunosResponse),
-        readPayload(turmasResponse),
-      ]);
+  const { data: turmasPayload, isLoading: loadingTurmas } = useQuery({
+    queryKey: ['classrooms_api', user?.id],
+    queryFn: async () => {
+      const res = await fetch('/api/turmas', { credentials: 'include', cache: 'no-store' });
+      return readPayload(res);
+    },
+    enabled: !!user?.id,
+  });
 
-      if (!alunosResponse.ok || !alunosPayload?.success) throw new Error(alunosPayload?.message || 'Erro ao carregar alunos');
-      if (!turmasResponse.ok || !turmasPayload?.success) throw new Error(turmasPayload?.message || 'Erro ao carregar turmas');
+  const { data: studentsPayload, isLoading: loadingStudents } = useQuery({
+    queryKey: ['students_api', user?.id],
+    queryFn: async () => {
+      const res = await fetch('/api/students', { credentials: 'include', cache: 'no-store' });
+      return readPayload(res);
+    },
+    enabled: !!user?.id,
+  });
 
-      setAlunos(alunosPayload.data.students || []);
-      setTurmas(turmasPayload.data.turmas || []);
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao carregar alunos.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = loadingTurmas || loadingStudents;
+  const turmas = turmasPayload?.data?.turmas || [];
+  const alunos = studentsPayload?.data?.students || [];
 
-  React.useEffect(() => {
-    void fetchData();
-  }, [user?.id]);
+  const createMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const response = await fetch('/api/students', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await readPayload(response);
+      if (!response.ok || !data?.success) throw new Error(data?.message || 'Erro ao criar aluno');
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      toast.success(`${variables.nome} cadastrado com sucesso.`);
+      setIsCreateOpen(false);
+      setNewStudent({ nome: '', matricula: '', turmaId: '', status: 'ativo', observacoes: '' });
+      queryClient.invalidateQueries({ queryKey: ['students_api', user?.id] });
+    },
+    onError: (err: any) => toast.error(err?.message || 'Erro ao criar aluno.')
+  });
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/students/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await readPayload(response);
+      if (!response.ok || !data?.success) throw new Error(data?.message || 'Erro ao excluir aluno');
+      return data;
+    },
+    onSuccess: () => {
+      const nome = deleteTarget?.nome || 'Aluno';
+      toast.success(`${nome} removido com sucesso.`);
+      setDeleteTarget(null);
+      queryClient.invalidateQueries({ queryKey: ['students_api', user?.id] });
+    },
+    onError: (err: any) => toast.error(err?.message || 'Erro ao excluir aluno.')
+  });
+
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudent.turmaId) {
       toast.error('Selecione uma turma.');
       return;
     }
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/students', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newStudent),
-      });
-      const payload = await readPayload(response);
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.message || 'Erro ao criar aluno');
-      }
-
-      toast.success(`${newStudent.nome} cadastrado com sucesso.`);
-      setIsCreateOpen(false);
-      setNewStudent({ nome: '', matricula: '', turmaId: '', status: 'ativo', observacoes: '' });
-      await fetchData();
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao criar aluno.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    createMutation.mutate(newStudent);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      const response = await fetch(`/api/students/${deleteTarget.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      const payload = await readPayload(response);
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.message || 'Erro ao excluir aluno');
-      }
-
-      toast.success(`${deleteTarget.nome} removido com sucesso.`);
-      setDeleteTarget(null);
-      await fetchData();
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao excluir aluno.');
-    } finally {
-      setDeleting(false);
-    }
+    deleteMutation.mutate(deleteTarget.id);
   };
 
-  const filteredAlunos = alunos.filter((aluno) =>
+  const filteredAlunos = alunos.filter((aluno: any) =>
     (aluno.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (aluno.matricula || '').includes(searchTerm)
   );
@@ -187,7 +177,7 @@ export default function AlunosPage() {
                     required
                   >
                     <option value=''>Selecione</option>
-                    {turmas.map((t) => (
+                    {turmas.map((t: any) => (
                       <option key={t.id} value={t.id}>{t.nome} - {t.serie}</option>
                     ))}
                   </select>
@@ -196,7 +186,7 @@ export default function AlunosPage() {
 
               <DialogFooter>
                 <Button type='button' variant='outline' onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                <Button type='submit' disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar aluno'}</Button>
+                <Button type='submit' disabled={createMutation.isPending}>{createMutation.isPending ? 'Salvando...' : 'Salvar aluno'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -219,8 +209,8 @@ export default function AlunosPage() {
         </CardHeader>
         <CardContent className='space-y-3'>
           {filteredAlunos.length > 0 ? (
-            filteredAlunos.map((aluno) => {
-              const turma = turmas.find((t) => t.id === aluno.turmaId);
+            filteredAlunos.map((aluno: any) => {
+              const turma = turmas.find((t: any) => t.id === aluno.turmaId);
               return (
                 <div key={aluno.id} className='p-4 rounded-2xl border border-slate-100 bg-slate-50/40 flex items-center justify-between'>
                   <div>
@@ -255,7 +245,7 @@ export default function AlunosPage() {
         title='Remover aluno'
         description={deleteTarget ? `Deseja remover ${deleteTarget.nome}? Esta acao nao pode ser desfeita.` : ''}
         confirmLabel='Remover aluno'
-        loading={deleting}
+        loading={deleteMutation.isPending}
         onConfirm={handleDelete}
       />
     </div>

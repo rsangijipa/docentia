@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Plus, Search, Users, Calendar, Loader2, Trash2, ChevronRight, School } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,13 +32,10 @@ async function readPayload(response: Response) {
 
 export default function TurmasPage() {
   const { user } = useAuth();
-  const [turmas, setTurmas] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<{ id: string; nome: string } | null>(null);
-  const [deleting, setDeleting] = React.useState(false);
 
   const [newTurma, setNewTurma] = React.useState({
     nome: '',
@@ -45,75 +43,65 @@ export default function TurmasPage() {
     turno: 'matutino',
   });
 
-  const fetchTurmas = async () => {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      const response = await fetch('/api/turmas', { credentials: 'include', cache: 'no-store' });
-      const payload = await readPayload(response);
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.message || 'Erro ao carregar turmas');
-      }
-      setTurmas(payload.data.turmas || []);
-    } catch {
-      toast.error('Falha ao sincronizar turmas.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: turmasPayload, isLoading: loading } = useQuery({
+    queryKey: ['classrooms_api', user?.id],
+    queryFn: async () => {
+      const res = await fetch('/api/turmas', { credentials: 'include', cache: 'no-store' });
+      return readPayload(res);
+    },
+    enabled: !!user?.id,
+  });
 
-  React.useEffect(() => {
-    void fetchTurmas();
-  }, [user?.id]);
+  const turmas = turmasPayload?.data?.turmas || [];
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
+  const createMutation = useMutation({
+    mutationFn: async (payload: any) => {
       const response = await fetch('/api/turmas', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTurma),
+        body: JSON.stringify(payload),
       });
-      const payload = await readPayload(response);
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.message || 'Erro ao criar turma');
-      }
-
-      toast.success(`Turma ${newTurma.nome} criada com sucesso.`);
+      const data = await readPayload(response);
+      if (!response.ok || !data?.success) throw new Error(data?.message || 'Erro ao criar turma');
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      toast.success(`Turma ${variables.nome} criada com sucesso.`);
       setIsCreateOpen(false);
       setNewTurma({ nome: '', serie: '', turno: 'matutino' });
-      await fetchTurmas();
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao criar turma.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['classrooms_api', user?.id] });
+    },
+    onError: (err: any) => toast.error(err?.message || 'Erro ao criar turma.')
+  });
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-
-    setDeleting(true);
-    try {
-      const response = await fetch(`/api/turmas/${deleteTarget.id}`, {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/turmas/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      const payload = await readPayload(response);
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.message || 'Erro ao excluir turma');
-      }
-
-      toast.success(`Turma ${deleteTarget.nome} removida.`);
+      const data = await readPayload(response);
+      if (!response.ok || !data?.success) throw new Error(data?.message || 'Erro ao excluir turma');
+      return data;
+    },
+    onSuccess: () => {
+      const nome = deleteTarget?.nome || 'Turma';
+      toast.success(`Turma ${nome} removida.`);
       setDeleteTarget(null);
-      await fetchTurmas();
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao excluir turma.');
-    } finally {
-      setDeleting(false);
-    }
+      queryClient.invalidateQueries({ queryKey: ['classrooms_api', user?.id] });
+    },
+    onError: (err: any) => toast.error(err?.message || 'Erro ao excluir turma.')
+  });
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate(newTurma);
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id);
   };
 
   const filtered = turmas.filter((t) =>
@@ -177,7 +165,7 @@ export default function TurmasPage() {
               </div>
               <DialogFooter>
                 <Button type='button' variant='outline' onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                <Button type='submit' disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar turma'}</Button>
+                <Button type='submit' disabled={createMutation.isPending}>{createMutation.isPending ? 'Salvando...' : 'Salvar turma'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -245,7 +233,7 @@ export default function TurmasPage() {
         title='Remover turma'
         description={deleteTarget ? `Deseja remover a turma ${deleteTarget.nome}? Esta acao nao pode ser desfeita.` : ''}
         confirmLabel='Remover turma'
-        loading={deleting}
+        loading={deleteMutation.isPending}
         onConfirm={handleDelete}
       />
     </div>

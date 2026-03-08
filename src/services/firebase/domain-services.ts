@@ -270,3 +270,55 @@ export class DashboardServiceFB {
         }
     }
 }
+
+export class EvaluationServiceFB {
+    private static collection = 'evaluations';
+
+    static async getByTeacher(teacherId: string) {
+        return await FirestoreService.getAll<any>(this.collection, [
+            where('teacherId', '==', teacherId)
+        ]);
+    }
+
+    static async getByClass(roomId: string) {
+        return await FirestoreService.getAll<any>(this.collection, [
+            where('roomId', '==', roomId)
+        ]);
+    }
+
+    static async create(data: any) {
+        return await FirestoreService.create(this.collection, data);
+    }
+
+    static async delete(id: string) {
+        return await FirestoreService.delete(this.collection, id);
+    }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
+    }
+}
+
+export class EvaluationResultServiceFB {
+    private static collection = 'evaluationResults';
+
+    static async getByEvaluation(evaluationId: string) {
+        return await FirestoreService.getAll<any>(this.collection, [
+            where('evaluationId', '==', evaluationId)
+        ]);
+    }
+
+    static async saveResult(studentId: string, evaluationId: string, grade: number) {
+        // Checa se ja existe nota para aquele aluno e avaliacao
+        const existing = await FirestoreService.getAll<any>(this.collection, [
+            where('studentId', '==', studentId),
+            where('evaluationId', '==', evaluationId)
+        ]);
+
+        if (existing.length > 0) {
+            return await FirestoreService.update(this.collection, existing[0].id, { grade });
+        } else {
+            return await FirestoreService.create(this.collection, { studentId, evaluationId, grade });
+        }
+    }
+}

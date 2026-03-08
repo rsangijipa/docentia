@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { apiError, apiSuccess } from "@/lib/api-response";
+import { getFirebaseAdminDb } from "@/lib/firebase-admin";
 
 const DEBUG_SEED_KEY = process.env.DEBUG_SEED_KEY;
 
@@ -21,102 +21,57 @@ export async function POST(request: Request) {
   }
 
   try {
+    const db = getFirebaseAdminDb();
     const hashedPassword = await hashPassword("1234567890");
 
-    const school = await prisma.school.upsert({
-      where: { id: "esc-1" },
-      update: {},
-      create: {
-        id: "esc-1",
-        name: "Escola Municipal Monteiro Lobato",
-        address: "Rua das Flores, 123 - Centro",
-        type: "municipal",
-        logo: "EM",
-        color: "indigo",
-      },
-    });
+    const schoolRef = db.collection('schools').doc('esc-1');
+    await schoolRef.set({
+      id: "esc-1",
+      name: "Escola Municipal Monteiro Lobato",
+      address: "Rua das Flores, 123 - Centro",
+      type: "municipal",
+      logo: "EM",
+      color: "indigo",
+    }, { merge: true });
 
-    const admin = await prisma.user.upsert({
-      where: { email: "admin@admin.com" },
-      update: {
-        password: hashedPassword,
-        name: "Administrador Docentia",
-        role: "ADMIN",
-      },
-      create: {
-        id: "prof-admin",
-        email: "admin@admin.com",
-        password: hashedPassword,
-        name: "Administrador Docentia",
-        role: "ADMIN",
-      },
-    });
+    const adminRef = db.collection('users').doc('prof-admin');
+    await adminRef.set({
+      id: "prof-admin",
+      email: "admin@admin.com",
+      password: hashedPassword,
+      name: "Administrador Docentia",
+      role: "ADMIN",
+      schoolId: schoolRef.id,
+      specialty: "Gestão Pedagógica"
+    }, { merge: true });
 
-    await prisma.profile.upsert({
-      where: { userId: admin.id },
-      update: {
-        schoolId: school.id,
-        specialty: "Gestao Pedagogica",
-      },
-      create: {
-        userId: admin.id,
-        schoolId: school.id,
-        specialty: "Gestao Pedagogica",
-      },
-    });
+    const yearRef = db.collection('schoolYears').doc('year-2026');
+    await yearRef.set({
+      id: "year-2026",
+      name: "Ano Letivo 2026",
+      startDate: new Date("2026-02-01"),
+      endDate: new Date("2026-12-15"),
+      active: true,
+      schoolId: schoolRef.id,
+    }, { merge: true });
 
-    const schoolYear = await prisma.schoolYear.upsert({
-      where: { id: "year-2026" },
-      update: {
-        name: "Ano Letivo 2026",
-        startDate: new Date("2026-02-01"),
-        endDate: new Date("2026-12-15"),
-        active: true,
-        schoolId: school.id,
-      },
-      create: {
-        id: "year-2026",
-        name: "Ano Letivo 2026",
-        startDate: new Date("2026-02-01"),
-        endDate: new Date("2026-12-15"),
-        active: true,
-        schoolId: school.id,
-      },
-    });
+    const subjectRef = db.collection('subjects').doc('subject-matematica');
+    await subjectRef.set({
+      id: "subject-matematica",
+      name: "Matemática",
+      schoolId: schoolRef.id,
+    }, { merge: true });
 
-    const subject = await prisma.subject.upsert({
-      where: { id: "subject-matematica" },
-      update: {
-        name: "Matematica",
-        schoolId: school.id,
-      },
-      create: {
-        id: "subject-matematica",
-        name: "Matematica",
-        schoolId: school.id,
-      },
-    });
-
-    const turma8A = await prisma.classRoom.upsert({
-      where: { id: "turma-8a" },
-      update: {
-        nome: "8o Ano A",
-        serie: "8o Ano",
-        turno: "matutino",
-        schoolId: school.id,
-        subjectId: subject.id,
-        teacherId: admin.id,
-      },
-      create: {
-        id: "turma-8a",
-        nome: "8o Ano A",
-        serie: "8o Ano",
-        turno: "matutino",
-        schoolId: school.id,
-        subjectId: subject.id,
-        teacherId: admin.id,
-      },
-    });
+    const turmaRef = db.collection('classrooms').doc('turma-8a');
+    await turmaRef.set({
+      id: "turma-8a",
+      nome: "8º Ano A",
+      serie: "8º Ano",
+      turno: "matutino",
+      schoolId: schoolRef.id,
+      subjectId: subjectRef.id,
+      teacherId: adminRef.id,
+    }, { merge: true });
 
     const studentsData = [
       { nome: "Ana Beatriz Silva", matricula: "2026001" },
@@ -127,31 +82,24 @@ export async function POST(request: Request) {
     ];
 
     for (const student of studentsData) {
-      await prisma.student.upsert({
-        where: { matricula: student.matricula },
-        update: {
-          nome: student.nome,
-          turmaId: turma8A.id,
-          frequenciaGeral: 95,
-          desempenhoGeral: 8.5,
-        },
-        create: {
-          nome: student.nome,
-          matricula: student.matricula,
-          turmaId: turma8A.id,
-          frequenciaGeral: 95,
-          desempenhoGeral: 8.5,
-        },
-      });
+      const studentRef = db.collection('students').doc(`student-${student.matricula}`);
+      await studentRef.set({
+        id: studentRef.id,
+        nome: student.nome,
+        matricula: student.matricula,
+        turmaId: turmaRef.id,
+        frequenciaGeral: 95,
+        desempenhoGeral: 8.5,
+      }, { merge: true });
     }
 
     return apiSuccess({
       seeded: true,
-      schoolId: school.id,
-      adminId: admin.id,
-      schoolYearId: schoolYear.id,
-      subjectId: subject.id,
-      turmaId: turma8A.id,
+      schoolId: schoolRef.id,
+      adminId: adminRef.id,
+      schoolYearId: yearRef.id,
+      subjectId: subjectRef.id,
+      turmaId: turmaRef.id,
       students: studentsData.length,
     });
   } catch (error) {

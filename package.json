@@ -4,15 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@opentelemetry/api": "^1.9.0",
-    "@prisma/adapter-better-sqlite3": "^7.4.2",
-    "@prisma/client": "^7.4.2",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-checkbox": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.1",
@@ -29,7 +27,6 @@
     "@tanstack/react-query": "^5.90.21",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^12.6.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -42,7 +39,6 @@
     "nanoid": "^5.1.6",
     "next": "14.2.23",
     "pdf-lib": "^1.17.1",
-    "prisma": "^7.4.2",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",

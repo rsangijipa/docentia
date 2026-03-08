@@ -3,6 +3,7 @@ import { Inter, Lora } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from 'sonner';
+import QueryProvider from '@/providers/query-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -41,10 +42,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${inter.variable} ${lora.variable}`}>
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-          <Toaster position="top-right" richColors expand={false} closeButton />
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+            <Toaster position="top-right" richColors expand={false} closeButton />
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

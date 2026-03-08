@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { ClipboardList, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { ClassroomServiceFB, DiaryEntryServiceFB } from '@/services/firebase/domain-services';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatDate } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -36,49 +38,31 @@ const initialForm: DiaryForm = {
   status: 'Realizado',
 };
 
-function formatDate(value: any) {
-  if (!value) return '-';
-  if (typeof value === 'string') return new Date(value).toLocaleDateString('pt-BR');
-  if (value?.seconds) return new Date(value.seconds * 1000).toLocaleDateString('pt-BR');
-  if (typeof value?.toDate === 'function') return value.toDate().toLocaleDateString('pt-BR');
-  return '-';
-}
 
 export default function DiarioPage() {
   const { user } = useAuth();
-  const [items, setItems] = React.useState<any[]>([]);
-  const [turmas, setTurmas] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = React.useState('');
 
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<any | null>(null);
-  const [submitting, setSubmitting] = React.useState(false);
   const [form, setForm] = React.useState<DiaryForm>(initialForm);
 
   const [deleteTarget, setDeleteTarget] = React.useState<any | null>(null);
-  const [deleting, setDeleting] = React.useState(false);
 
-  const fetchData = React.useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      const [entriesData, turmasData] = await Promise.all([
-        DiaryEntryServiceFB.getByTeacher(user.id),
-        ClassroomServiceFB.getByTeacher(user.id),
-      ]);
-      setItems(entriesData || []);
-      setTurmas(turmasData || []);
-    } catch {
-      toast.error('Erro ao carregar diario.');
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
+  const { data: turmas = [], isLoading: loadingTurmas } = useQuery({
+    queryKey: ['classrooms', user?.id],
+    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    enabled: !!user?.id,
+  });
 
-  React.useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
+  const { data: items = [], isLoading: loadingItems } = useQuery({
+    queryKey: ['diaries', user?.id],
+    queryFn: () => user?.id ? DiaryEntryServiceFB.getByTeacher(user.id) : [],
+    enabled: !!user?.id,
+  });
+
+  const loading = loadingTurmas || loadingItems;
 
   const resetForm = () => {
     setEditing(null);
@@ -109,6 +93,38 @@ export default function DiarioPage() {
     setOpen(true);
   };
 
+  const createMutation = useMutation({
+    mutationFn: (payload: any) => DiaryEntryServiceFB.create(payload),
+    onSuccess: () => {
+      toast.success('Diario registrado.');
+      queryClient.invalidateQueries({ queryKey: ['diaries', user?.id] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: () => toast.error('Erro ao salvar diario.')
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => DiaryEntryServiceFB.update(id, payload),
+    onSuccess: () => {
+      toast.success('Diario atualizado.');
+      queryClient.invalidateQueries({ queryKey: ['diaries', user?.id] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: () => toast.error('Erro ao atualizar diario.')
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => DiaryEntryServiceFB.delete(id),
+    onSuccess: () => {
+      toast.success('Registro removido.');
+      queryClient.invalidateQueries({ queryKey: ['diaries', user?.id] });
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error('Erro ao remover registro.')
+  });
+
   const handleSubmit = async () => {
     if (!user?.id) return;
     if (!form.turmaId || !form.date || !form.conteudoMinistrado) {
@@ -116,59 +132,33 @@ export default function DiarioPage() {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const payload = {
-        roomId: form.turmaId,
-        turmaId: form.turmaId,
-        teacherId: user.id,
-        date: new Date(`${form.date}T08:00:00`).toISOString(),
-        conteudoMinistrado: form.conteudoMinistrado,
-        content: form.conteudoMinistrado,
-        observacoes: form.observacoes,
-        observations: form.observacoes,
-        status: form.status,
-        updatedAt: new Date().toISOString(),
-      };
+    const payload = {
+      roomId: form.turmaId,
+      turmaId: form.turmaId,
+      teacherId: user.id,
+      date: new Date(`${form.date}T08:00:00`).toISOString(),
+      conteudoMinistrado: form.conteudoMinistrado,
+      content: form.conteudoMinistrado,
+      observacoes: form.observacoes,
+      observations: form.observacoes,
+      status: form.status,
+      updatedAt: new Date().toISOString(),
+    };
 
-      if (editing?.id) {
-        await DiaryEntryServiceFB.update(editing.id, payload);
-        toast.success('Diario atualizado.');
-      } else {
-        await DiaryEntryServiceFB.create({
-          ...payload,
-          createdAt: new Date().toISOString(),
-        });
-        toast.success('Diario registrado.');
-      }
-
-      setOpen(false);
-      resetForm();
-      await fetchData();
-    } catch {
-      toast.error('Erro ao salvar diario.');
-    } finally {
-      setSubmitting(false);
+    if (editing?.id) {
+      updateMutation.mutate({ id: editing.id, payload });
+    } else {
+      createMutation.mutate({ ...payload, createdAt: new Date().toISOString() });
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget?.id) return;
-    setDeleting(true);
-    try {
-      await DiaryEntryServiceFB.delete(deleteTarget.id);
-      toast.success('Registro removido.');
-      setDeleteTarget(null);
-      await fetchData();
-    } catch {
-      toast.error('Erro ao remover registro.');
-    } finally {
-      setDeleting(false);
-    }
+    deleteMutation.mutate(deleteTarget.id);
   };
 
-  const filtered = items.filter((entry) => {
-    const turma = turmas.find((t) => t.id === (entry.roomId || entry.turmaId));
+  const filtered = items.filter((entry: any) => {
+    const turma = turmas.find((t: any) => t.id === (entry.roomId || entry.turmaId));
     const source = `${entry.conteudoMinistrado || entry.content || ''} ${turma?.nome || ''}`.toLowerCase();
     return source.includes(search.toLowerCase());
   });
@@ -252,7 +242,7 @@ export default function DiarioPage() {
                   onChange={(e) => setForm((p) => ({ ...p, turmaId: e.target.value }))}
                 >
                   <option value=''>Selecione</option>
-                  {turmas.map((turma) => (
+                  {turmas.map((turma: any) => (
                     <option key={turma.id} value={turma.id}>{turma.nome}</option>
                   ))}
                 </select>
@@ -291,7 +281,7 @@ export default function DiarioPage() {
 
           <DialogFooter>
             <Button variant='outline' onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
+            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : 'Salvar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -304,7 +294,7 @@ export default function DiarioPage() {
         title='Excluir registro do diario'
         description={deleteTarget ? `Deseja excluir este registro de ${formatDate(deleteTarget.date)}?` : ''}
         confirmLabel='Excluir'
-        loading={deleting}
+        loading={deleteMutation.isPending}
         onConfirm={handleDelete}
       />
     </div>

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Calendar, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { ClassroomServiceFB, LessonPlanServiceFB } from '@/services/firebase/domain-services';
@@ -11,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -46,49 +48,31 @@ function dateInputToIso(dateInput: string) {
   return new Date(`${dateInput}T08:00:00`).toISOString();
 }
 
-function formatDate(value: any) {
-  if (!value) return '-';
-  if (typeof value === 'string') return new Date(value).toLocaleDateString('pt-BR');
-  if (value?.seconds) return new Date(value.seconds * 1000).toLocaleDateString('pt-BR');
-  if (typeof value?.toDate === 'function') return value.toDate().toLocaleDateString('pt-BR');
-  return '-';
-}
 
 export default function PlanosAulaPage() {
   const { user } = useAuth();
-  const [planos, setPlanos] = React.useState<any[]>([]);
-  const [turmas, setTurmas] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = React.useState('');
 
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<any | null>(null);
-  const [submitting, setSubmitting] = React.useState(false);
   const [form, setForm] = React.useState<LessonForm>(initialForm);
 
   const [deleteTarget, setDeleteTarget] = React.useState<any | null>(null);
-  const [deleting, setDeleting] = React.useState(false);
 
-  const fetchData = React.useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      const [planosData, turmasData] = await Promise.all([
-        LessonPlanServiceFB.getByTeacher(user.id),
-        ClassroomServiceFB.getByTeacher(user.id),
-      ]);
-      setPlanos(planosData);
-      setTurmas(turmasData);
-    } catch {
-      toast.error('Erro ao carregar planos de aula.');
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
+  const { data: turmas = [], isLoading: loadingTurmas } = useQuery({
+    queryKey: ['classrooms', user?.id],
+    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    enabled: !!user?.id,
+  });
 
-  React.useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
+  const { data: planos = [], isLoading: loadingPlanos } = useQuery({
+    queryKey: ['lessonPlans', user?.id],
+    queryFn: () => user?.id ? LessonPlanServiceFB.getByTeacher(user.id) : [],
+    enabled: !!user?.id,
+  });
+
+  const loading = loadingTurmas || loadingPlanos;
 
   const resetForm = () => {
     setEditing(null);
@@ -122,6 +106,38 @@ export default function PlanosAulaPage() {
     setOpen(true);
   };
 
+  const createMutation = useMutation({
+    mutationFn: (payload: any) => LessonPlanServiceFB.create(payload),
+    onSuccess: () => {
+      toast.success('Plano de aula criado.');
+      queryClient.invalidateQueries({ queryKey: ['lessonPlans', user?.id] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: () => toast.error('Erro ao salvar plano de aula.')
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => LessonPlanServiceFB.update(id, payload),
+    onSuccess: () => {
+      toast.success('Plano de aula atualizado.');
+      queryClient.invalidateQueries({ queryKey: ['lessonPlans', user?.id] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: () => toast.error('Erro ao atualizar plano de aula.')
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => LessonPlanServiceFB.delete(id),
+    onSuccess: () => {
+      toast.success('Plano removido com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['lessonPlans', user?.id] });
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error('Erro ao remover plano.')
+  });
+
   const handleSubmit = async () => {
     if (!user?.id) return;
     if (!form.titulo || !form.turmaId || !form.data) {
@@ -129,58 +145,33 @@ export default function PlanosAulaPage() {
       return;
     }
 
-    const turma = turmas.find((t) => t.id === form.turmaId);
-    setSubmitting(true);
-    try {
-      const payload = {
-        topic: form.titulo,
-        turmaId: form.turmaId,
-        roomId: form.turmaId,
-        nomeTurma: turma?.nome || null,
-        date: dateInputToIso(form.data),
-        goals: form.objetivo,
-        methodology: form.metodologia,
-        resources: form.recursos,
-        habilidades: form.habilidades,
-        teacherId: user.id,
-        status: 'Planejado',
-        updatedAt: new Date().toISOString(),
-      };
+    const turma = turmas.find((t: any) => t.id === form.turmaId);
 
-      if (editing?.id) {
-        await LessonPlanServiceFB.update(editing.id, payload);
-        toast.success('Plano de aula atualizado.');
-      } else {
-        await LessonPlanServiceFB.create({
-          ...payload,
-          createdAt: new Date().toISOString(),
-        });
-        toast.success('Plano de aula criado.');
-      }
+    const payload = {
+      topic: form.titulo,
+      turmaId: form.turmaId,
+      roomId: form.turmaId,
+      nomeTurma: turma?.nome || null,
+      date: dateInputToIso(form.data),
+      goals: form.objetivo,
+      methodology: form.metodologia,
+      resources: form.recursos,
+      habilidades: form.habilidades,
+      teacherId: user.id,
+      status: 'Planejado',
+      updatedAt: new Date().toISOString(),
+    };
 
-      setOpen(false);
-      resetForm();
-      await fetchData();
-    } catch {
-      toast.error('Erro ao salvar plano de aula.');
-    } finally {
-      setSubmitting(false);
+    if (editing?.id) {
+      updateMutation.mutate({ id: editing.id, payload });
+    } else {
+      createMutation.mutate({ ...payload, createdAt: new Date().toISOString() });
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget?.id) return;
-    setDeleting(true);
-    try {
-      await LessonPlanServiceFB.delete(deleteTarget.id);
-      toast.success('Plano removido com sucesso.');
-      setDeleteTarget(null);
-      await fetchData();
-    } catch {
-      toast.error('Erro ao remover plano.');
-    } finally {
-      setDeleting(false);
-    }
+    deleteMutation.mutate(deleteTarget.id);
   };
 
   const filtered = planos.filter((p) => {
@@ -296,7 +287,7 @@ export default function PlanosAulaPage() {
           </div>
           <DialogFooter>
             <Button variant='outline' onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
+            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : 'Salvar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -309,7 +300,7 @@ export default function PlanosAulaPage() {
         title='Excluir plano de aula'
         description={deleteTarget ? `Deseja excluir "${deleteTarget.topic || deleteTarget.titulo}"?` : ''}
         confirmLabel='Excluir'
-        loading={deleting}
+        loading={deleteMutation.isPending}
         onConfirm={handleDelete}
       />
     </div>
