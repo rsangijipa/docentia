@@ -3,6 +3,10 @@ export interface Professor {
   nome: string;
   email: string;
   escolaId?: string;
+  avatar?: string;
+  role?: string;
+  especialidade?: string;
+  formacao?: string;
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -12,6 +16,8 @@ export interface Escola {
   nome: string;
   endereco: string;
   tipo: 'municipal' | 'estadual' | 'federal';
+  logo?: string;
+  color?: string;
   createdAt: Date;
 }
 
