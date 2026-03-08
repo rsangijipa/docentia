@@ -37,8 +37,8 @@ export function LandingNavbar() {
       >
         <div className="flex justify-between items-center">
           <Link href="/" className="flex items-center gap-4 group">
-            <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-              <ShieldCheck className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center p-2.5 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+              <img src="/logo.png" className="w-full h-full object-contain brightness-0 invert" alt="Docentia" />
             </div>
             <div className="flex flex-col">
               <span className="font-serif font-black text-2xl tracking-tighter text-slate-900 italic leading-none">Docentia</span>

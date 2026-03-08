@@ -123,11 +123,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-3xl bg-primary flex items-center justify-center text-primary-foreground font-serif italic font-bold text-3xl shadow-2xl animate-pulse">
-            D
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 rounded-[2rem] bg-white flex items-center justify-center p-3 shadow-2xl border border-slate-100 animate-pulse">
+            <img src="/logo.png" className="w-full h-full object-contain" alt="Docentia" />
           </div>
-          <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest animate-fade-in">Docentia Office</p>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] animate-fade-in">Docentia Office</p>
         </div>
       </div>
     );
@@ -163,9 +163,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Mobile Header Sidebar */}
         <div className="h-20 px-8 flex items-center justify-between border-b border-slate-100 shrink-0">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white font-serif font-black text-xl italic shadow-lg">D</div>
-            <span className="font-serif font-bold text-xl tracking-tight text-slate-800">Docentia</span>
+          <Link href="/dashboard" className="flex items-center gap-4 group">
+            <div className="w-11 h-11 rounded-2xl bg-slate-950 flex items-center justify-center p-2.5 shadow-xl transition-all group-hover:scale-105 group-hover:rotate-2">
+              <img src="/logo.png" className="w-full h-full object-contain brightness-0 invert" alt="Docentia" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-serif font-black text-2xl tracking-tight text-slate-800 italic leading-none">Docentia</span>
+              <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary mt-1">Maestro</span>
+            </div>
           </Link>
           <Button variant="ghost" size="icon" className="lg:hidden rounded-xl h-10 w-10 border border-slate-100" onClick={() => setIsMobileOpen(false)}>
             <X className="w-5 h-5 text-slate-400" />

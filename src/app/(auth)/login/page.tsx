@@ -53,8 +53,8 @@ export default function LoginPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-bold text-3xl shadow-lg">
-            D
+          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-3 shadow-xl border border-slate-100">
+            <img src="/logo.png" className="w-full h-full object-contain" alt="Docentia" />
           </div>
         </div>
         <h2 className="text-center text-3xl font-extrabold text-slate-900 tracking-tight">

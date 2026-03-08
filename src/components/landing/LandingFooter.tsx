@@ -11,8 +11,8 @@ export function LandingFooter() {
 
                     <div className="md:col-span-2 space-y-8">
                         <Link href="/" className="flex items-center gap-4 group">
-                            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-xl transition-all group-hover:scale-105">
-                                <ShieldCheck className="w-5 h-5" />
+                            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center p-2 shadow-xl transition-all group-hover:scale-105 group-hover:rotate-2">
+                                <img src="/logo.png" className="w-full h-full object-contain brightness-0 invert" alt="Docentia" />
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-serif font-black text-xl tracking-tighter text-slate-900 italic leading-none">Docentia</span>
