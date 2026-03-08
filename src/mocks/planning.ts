@@ -1,0 +1,118 @@
+import { EventoCalendario, PlanoCurso, PlanoAula } from '@/types';
+
+export const mockCalendar: EventoCalendario[] = [
+    {
+        id: 'ev-1',
+        anoLetivoId: '2024',
+        titulo: 'Início das Aulas',
+        tipo: 'feriado',
+        data: new Date('2024-02-05'),
+        abrangencia: 'escola',
+        createdAt: new Date(),
+    },
+    {
+        id: 'ev-2',
+        anoLetivoId: '2024',
+        titulo: 'Carnaval',
+        tipo: 'feriado',
+        data: new Date('2024-02-12'),
+        abrangencia: 'nacional',
+        createdAt: new Date(),
+    },
+    {
+        id: 'ev-3',
+        anoLetivoId: '2024',
+        titulo: 'Prova Bimestral - Matemática',
+        tipo: 'prova',
+        data: new Date('2024-04-15'),
+        abrangencia: 'escola',
+        descricao: 'Avaliação referente ao 1º Bimestre',
+        createdAt: new Date(),
+    },
+    {
+        id: 'ev-4',
+        anoLetivoId: '2024',
+        titulo: 'Conselho de Classe',
+        tipo: 'conselho',
+        data: new Date('2024-04-20'),
+        abrangencia: 'escola',
+        createdAt: new Date(),
+    },
+];
+
+export const mockCoursePlans: PlanoCurso[] = [
+    {
+        id: 'pc-1',
+        professorId: 'prof-1',
+        escolaId: 'esc-1',
+        anoLetivoId: '2024',
+        turmaId: 'turma-8a',
+        disciplinaId: 'mat-8',
+        titulo: 'Plano Anual de Matemática - 8º Ano',
+        objetivosGerais: ['Desenvolver o raciocínio lógico', 'Aplicar conceitos geométricos'],
+        competencias: ['Competência 1', 'Competência 2'],
+        habilidadesBNCC: ['EF08MA01', 'EF08MA02'],
+        conteudos: [
+            { id: 'c1', descricao: 'Potenciação', bimestre: 1 },
+            { id: 'c2', descricao: 'Radiciação', bimestre: 1 },
+        ],
+        criteriosAvaliacao: 'Provas bimestrais e trabalhos em grupo',
+        metodologia: 'Aulas expositivas e resolução de problemas',
+        recursos: ['Livro didático', 'Projetor'],
+        unidades: [
+            { numero: 1, titulo: 'Unidade 1: Números e Operações', bimestre: 1, objetivos: ['Entender potências'], conteudos: ['Potências de 10'] }
+        ],
+        status: 'ativo',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    }
+];
+
+export const mockLessonPlans: PlanoAula[] = [
+    {
+        id: 'pa-1',
+        professorId: 'prof-1',
+        planoCursoId: 'pc-1',
+        turmaId: 'turma-8a',
+        disciplinaId: 'mat-8',
+        data: new Date('2024-03-10'),
+        periodo: 1,
+        tema: 'Introdução à Potenciação',
+        objetivo: 'Conceituar potência e base',
+        habilidadeBNCC: 'EF08MA01',
+        conteudo: 'Definição de potência e suas propriedades',
+        metodologia: 'Aula teórica',
+        material: 'Quadro e giz',
+        paginasLivro: '12-15',
+        atividade: 'Exercícios 1 a 5',
+        tarefa: 'Página 16',
+        avaliacao: 'Participação em sala',
+        observacoes: '',
+        status: 'executado',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    },
+    {
+        id: 'pa-2',
+        professorId: 'prof-1',
+        planoCursoId: 'pc-1',
+        turmaId: 'turma-8a',
+        disciplinaId: 'mat-8',
+        data: new Date('2024-03-17'),
+        periodo: 1,
+        tema: 'Propriedades de Potências',
+        objetivo: 'Aplicar propriedades',
+        habilidadeBNCC: 'EF08MA01',
+        conteudo: 'Multiplicação e divisão de potências',
+        metodologia: 'Aula prática',
+        material: 'Livro',
+        paginasLivro: '17-20',
+        atividade: 'Exercícios 6 a 10',
+        tarefa: 'Página 21',
+        avaliacao: 'Exercício entregue',
+        observacoes: '',
+        status: 'planejado',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    }
+];

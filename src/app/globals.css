@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Elegant warm palette for a study/professor environment */
+    --background: 40 30% 98%;
+    --foreground: 215 30% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 30% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 30% 18%;
+
+    /* Elegant deep navy as primary */
+    --primary: 215 40% 28%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Warm cream secondary */
+    --secondary: 38 20% 93%;
+    --secondary-foreground: 215 30% 18%;
+
+    --muted: 210 20% 95%;
+    --muted-foreground: 215 15% 48%;
+
+    --accent: 38 20% 93%;
+    --accent-foreground: 215 30% 18%;
+
+    --destructive: 0 68% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 215 40% 28%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Smooth scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
