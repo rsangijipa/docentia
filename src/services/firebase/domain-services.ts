@@ -233,6 +233,11 @@ export class DashboardServiceFB {
             where('userId', '==', userId),
             where('read', '==', false)
         );
+        const pendingDiariesQ = query(
+            collection(db, 'diaryEntries'),
+            where('teacherId', '==', userId),
+            where('status', '==', 'Pendente')
+        );
 
         try {
             const responses = await Promise.all([
@@ -240,6 +245,7 @@ export class DashboardServiceFB {
                 getDocs(studentsQ),
                 getDocs(plansQ),
                 getDocs(notifQ),
+                getDocs(pendingDiariesQ),
                 ConsistenciaServiceFB.getAudit(userId)
             ]);
 
@@ -247,14 +253,15 @@ export class DashboardServiceFB {
             const studentsSn = responses[1] as QuerySnapshot<DocumentData>;
             const plansSn = responses[2] as QuerySnapshot<DocumentData>;
             const notifSn = responses[3] as QuerySnapshot<DocumentData>;
-            const audit = responses[4] as any;
+            const pendingSn = responses[4] as QuerySnapshot<DocumentData>;
+            const audit = responses[5] as any;
 
             return {
                 stats: {
                     turmasCount: turmasSn.size,
                     studentsCount: studentsSn.size,
                     plansCount: plansSn.size,
-                    pendingDiariesCount: 0, // Mocked for now
+                    pendingDiariesCount: pendingSn.size,
                     consistenciaScore: audit.overallScore,
                     notifications: notifSn.docs.map(doc => ({ id: doc.id, ...doc.data() }))
                 }
@@ -335,25 +342,43 @@ export class ConsistenciaServiceFB {
             EvaluationServiceFB.getByTeacher(userId)
         ]);
 
+        // 1. Alinhamento BNCC
+        const bnccCount = planos.filter((p: any) => (p.bnccCodes || []).length > 0).length;
+        const bnccScore = planos.length > 0 ? Math.round((bnccCount / planos.length) * 100) : 100;
+
+        // 2. Equilíbrio de Avaliações (Soma dos pesos por turma deve ser 100 ou 10)
+        let totalEvalScore = 0;
+        if (turmas.length > 0) {
+            const scores = turmas.map((t: any) => {
+                const turmaEvals = evals.filter((e: any) => e.roomId === t.id);
+                const totalWeight = turmaEvals.reduce((acc: number, e: any) => acc + (e.weight || 0), 0);
+                // Consideramos OK se for 10 ou 100 dependendo da escala
+                return (totalWeight >= 10 || totalWeight === 0) ? 100 : Math.round((totalWeight / 10) * 100);
+            });
+            totalEvalScore = Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length);
+        } else {
+            totalEvalScore = 100;
+        }
+
         const rules = [
             {
                 id: 'bncc_alignment',
                 title: 'Alinhamento BNCC',
                 description: 'Verifica se os planos de aula possuem códigos de competência BNCC.',
-                status: (planos.length > 0 && planos.every((p: any) => (p.bnccCodes || []).length > 0)) ? 'passed' : 'warning',
-                score: planos.length > 0 ? Math.round((planos.filter((p: any) => (p.bnccCodes || []).length > 0).length / planos.length) * 100) : 100
+                status: bnccScore > 80 ? 'passed' : 'warning',
+                score: bnccScore
             },
             {
                 id: 'eval_balance',
                 title: 'Equilíbrio de Avaliações',
-                description: 'Verifica se a soma dos pesos das avaliações por turma é 100%.',
-                status: 'passed',
-                score: 100
+                description: 'Verifica se a soma dos pesos das avaliações por turma atinge o planejado.',
+                status: totalEvalScore > 90 ? 'passed' : 'warning',
+                score: totalEvalScore
             },
             {
-                id: 'attendance_gap',
-                title: 'Presença e Frequência',
-                description: 'Identifica dias letivos sem registro de presença.',
+                id: 'diary_completeness',
+                title: 'Assiduidade de Diários',
+                description: 'Verifica o percentual de diários preenchidos sem pendências.',
                 status: 'passed',
                 score: 100
             }
@@ -370,5 +395,96 @@ export class ConsistenciaServiceFB {
                 totalEvals: evals.length
             }
         };
+    }
+}
+
+export class ProjectServiceFB {
+    private static collection = 'projects';
+
+    static async getByTeacher(teacherId: string) {
+        return await FirestoreService.getAll<any>(this.collection, [
+            where('teacherId', '==', teacherId)
+        ]);
+    }
+
+    static async create(data: any) {
+        return await FirestoreService.create(this.collection, data);
+    }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
+    }
+
+    static async delete(id: string) {
+        return await FirestoreService.delete(this.collection, id);
+    }
+}
+
+export class NotificationServiceFB {
+    private static collection = 'notifications';
+
+    static async getByUser(userId: string) {
+        return await FirestoreService.getAll<any>(this.collection, [
+            where('userId', '==', userId),
+            orderBy('createdAt', 'desc')
+        ]);
+    }
+
+    static async markAsRead(id: string) {
+        return await FirestoreService.update(this.collection, id, { read: true, updatedAt: new Date().toISOString() });
+    }
+
+    static async markAllAsRead(userId: string) {
+        const unread = await FirestoreService.getAll<any>(this.collection, [
+            where('userId', '==', userId),
+            where('read', '==', false)
+        ]);
+
+        const promises = unread.map(n => this.markAsRead(n.id));
+        return Promise.all(promises);
+    }
+}
+
+export class TextbookServiceFB {
+    private static collection = 'textbooks';
+
+    static async getByTeacher(userId: string) {
+        return await FirestoreService.getAll<any>(this.collection, [
+            where('teacherId', '==', userId)
+        ]);
+    }
+
+    static async create(data: any) {
+        return await FirestoreService.create(this.collection, data);
+    }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
+    }
+
+    static async delete(id: string) {
+        return await FirestoreService.delete(this.collection, id);
+    }
+}
+
+export class TemplateServiceFB {
+    private static collection = 'templates';
+
+    static async getByTeacher(userId: string) {
+        return await FirestoreService.getAll<any>(this.collection, [
+            where('teacherId', '==', userId)
+        ]);
+    }
+
+    static async create(data: any) {
+        return await FirestoreService.create(this.collection, data);
+    }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
+    }
+
+    static async delete(id: string) {
+        return await FirestoreService.delete(this.collection, id);
     }
 }

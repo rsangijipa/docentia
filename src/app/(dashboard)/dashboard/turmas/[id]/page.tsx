@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ClassroomServiceFB } from '@/services/firebase/domain-services';
 
 type Turma = {
   id: string;
@@ -35,16 +36,14 @@ export default function TurmaDetailPage() {
 
   React.useEffect(() => {
     const fetchTurma = async () => {
+      if (!id) return;
       try {
         setLoading(true);
-        const res = await fetch(`/api/turmas/${id}`, { cache: 'no-store' });
-        const payload = await res.json();
-
-        if (!res.ok || !payload?.success) {
-          throw new Error(payload?.message || 'Nao foi possivel carregar a turma.');
+        const data = await ClassroomServiceFB.getById(id);
+        if (!data) {
+          throw new Error('Turma nao encontrada.');
         }
-
-        setTurma(payload.data.turma);
+        setTurma(data);
       } catch (err: any) {
         setError(err?.message || 'Erro inesperado ao carregar turma.');
       } finally {
@@ -52,7 +51,7 @@ export default function TurmaDetailPage() {
       }
     };
 
-    if (id) fetchTurma();
+    void fetchTurma();
   }, [id]);
 
   if (loading) {

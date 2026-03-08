@@ -21,21 +21,13 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ConfirmActionDialog } from '@/components/dashboard/ConfirmActionDialog';
-
-async function readPayload(response: Response) {
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    return response.json();
-  }
-  return { success: false, message: 'Resposta invalida do servidor.' };
-}
+import { ClassroomServiceFB } from '@/services/firebase/domain-services';
 
 export default function TurmasPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<{ id: string; nome: string } | null>(null);
 
   const [newTurma, setNewTurma] = React.useState({
@@ -44,53 +36,35 @@ export default function TurmasPage() {
     turno: 'matutino',
   });
 
-  const { data: turmasPayload, isLoading: loading } = useQuery({
-    queryKey: ['classrooms_api', user?.id],
-    queryFn: async () => {
-      const res = await fetch('/api/turmas', { credentials: 'include', cache: 'no-store' });
-      return readPayload(res);
-    },
+  const { data: turmas = [], isLoading: loading } = useQuery({
+    queryKey: ['classrooms', user?.id],
+    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
-  const turmas = turmasPayload?.data?.turmas || [];
-
   const createMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      const response = await fetch('/api/turmas', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await readPayload(response);
-      if (!response.ok || !data?.success) throw new Error(data?.message || 'Erro ao criar turma');
-      return data;
-    },
+    mutationFn: (payload: any) => ClassroomServiceFB.create({
+      ...payload,
+      teacherId: user?.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
     onSuccess: (_, variables) => {
       toast.success(`Turma ${variables.nome} criada com sucesso.`);
       setIsCreateOpen(false);
       setNewTurma({ nome: '', serie: '', turno: 'matutino' });
-      queryClient.invalidateQueries({ queryKey: ['classrooms_api', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['classrooms', user?.id] });
     },
     onError: (err: any) => toast.error(err?.message || 'Erro ao criar turma.')
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/turmas/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      const data = await readPayload(response);
-      if (!response.ok || !data?.success) throw new Error(data?.message || 'Erro ao excluir turma');
-      return data;
-    },
+    mutationFn: (id: string) => ClassroomServiceFB.delete(id),
     onSuccess: () => {
       const nome = deleteTarget?.nome || 'Turma';
       toast.success(`Turma ${nome} removida.`);
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: ['classrooms_api', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['classrooms', user?.id] });
     },
     onError: (err: any) => toast.error(err?.message || 'Erro ao excluir turma.')
   });
