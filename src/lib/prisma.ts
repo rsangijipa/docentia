@@ -1,7 +1,17 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+    throw new Error('DATABASE_URL is required to initialize PrismaClient');
+}
+
+// Ensure the connection string format matches expected path format if needed, but the adapter likely handles "file:"
+const adapter = new PrismaBetterSqlite3({ url: connectionString });
 
 const prismaClientSingleton = () => {
-    return new PrismaClient();
+    return new PrismaClient({ adapter });
 };
 
 declare global {
