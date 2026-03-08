@@ -18,9 +18,19 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: 'Docentia — Escritório Pedagógico Digital',
-  description: 'Planeje aulas, preencha diários, gerencie turmas e exporte relatórios em um só lugar. Feito para professores.',
-  keywords: 'plano de aula, diário de classe, BNCC, PNLD, gestão escolar, professor',
+  title: 'Docentia | Escritório Pedagógico',
+  description: 'A inteligência definitiva para o planejamento e gestão pedagógica do professor moderno.',
+  keywords: 'plano de aula, diário de classe, BNCC, PNLD, gestão escolar, professor, docentia',
+  icons: {
+    icon: [
+      { url: '/logo.png', sizes: '32x32', type: 'image/png' },
+      { url: '/logo.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/logo.png',
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({
