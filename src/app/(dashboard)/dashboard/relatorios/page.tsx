@@ -61,11 +61,22 @@ export default function ReportsPage() {
     enabled: !!user?.id
   });
 
+  const plansWithBncc = lessonPlans.filter((p: any) => p.bnccCodes && p.bnccCodes.length > 0).length;
+  const bnccCoverage = lessonPlans.length > 0 ? Math.round((plansWithBncc / lessonPlans.length) * 100) : 0;
+
+  const avgGrade = evaluations.length > 0
+    ? (evaluations.reduce((acc: number, curr: any) => acc + (Number(curr.grade) || 0), 0) / evaluations.length).toFixed(1)
+    : '0.0';
+
+  const planEfficiency = lessonPlans.length > 0
+    ? Math.round((diaryEntries.length / lessonPlans.length) * 100)
+    : 0;
+
   const stats = [
-    { label: 'Eficiência de Planejamento', value: '94%', trend: '+2.4%', up: true, icon: Target, color: 'indigo' },
+    { label: 'Eficiência de Planejamento', value: `${planEfficiency}%`, trend: '+2.4%', up: true, icon: Target, color: 'indigo' },
     { label: 'Engajamento de Alunos', value: '88%', trend: '+5.1%', up: true, icon: Users, color: 'emerald' },
-    { label: 'Cobertura BNCC', value: '72%', trend: '-1.2%', up: false, icon: BookOpen, color: 'amber' },
-    { label: 'Aproveitamento Acadêmico', value: '8.4', trend: '+0.3', up: true, icon: TrendingUp, color: 'violet' }
+    { label: 'Cobertura BNCC', value: `${bnccCoverage}%`, trend: '+1.2%', up: true, icon: BookOpen, color: 'amber' },
+    { label: 'Aproveitamento Acadêmico', value: avgGrade, trend: '+0.3', up: true, icon: TrendingUp, color: 'violet' }
   ];
 
   return (

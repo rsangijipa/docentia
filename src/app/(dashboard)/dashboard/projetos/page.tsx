@@ -17,6 +17,7 @@ import {
   Loader2,
   MoreVertical
 } from 'lucide-react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -255,63 +256,77 @@ export default function ProjetosPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredProjetos.length > 0 ? filteredProjetos.map((proj: any) => (
-          <Card key={proj.id} className="group hover:shadow-2xl transition-all duration-700 border-border/40 bg-white rounded-[2.5rem] overflow-hidden hover:border-violet-500/20 shadow-lg">
-            <CardContent className="p-0">
-              <div className="p-8 space-y-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge className={cn(
-                        "text-[8px] font-black uppercase tracking-widest border-none px-2 h-4",
-                        proj.status === 'em-andamento' ? 'bg-blue-50 text-blue-600' :
-                          proj.status === 'planejamento' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
-                      )}>
-                        {proj.status.replace('-', ' ')}
-                      </Badge>
+        {activeTab === 'templates' ? (
+          <div className='col-span-full py-20 flex flex-col items-center justify-center space-y-4 bg-white rounded-[3rem] border border-dashed border-slate-200'>
+            <Layout className="w-12 h-12 text-slate-200" />
+            <div className="text-center">
+              <p className='text-slate-500 font-bold'>Deseja importar um modelo?</p>
+              <Link href="/dashboard/templates">
+                <Button variant="link" className="text-violet-600 font-bold p-0 text-xs">Ver minha biblioteca de templates →</Button>
+              </Link>
+            </div>
+          </div>
+        ) : filteredProjetos.filter((p: any) => activeTab === 'arquivados' ? p.progresso === 100 : p.progresso < 100).length > 0 ? (
+          filteredProjetos
+            .filter((p: any) => activeTab === 'arquivados' ? p.progresso === 100 : p.progresso < 100)
+            .map((proj: any) => (
+              <Card key={proj.id} className="group hover:shadow-2xl transition-all duration-700 border-border/40 bg-white rounded-[2.5rem] overflow-hidden hover:border-violet-500/20 shadow-lg">
+                <CardContent className="p-0">
+                  <div className="p-8 space-y-6">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge className={cn(
+                            "text-[8px] font-black uppercase tracking-widest border-none px-2 h-4",
+                            proj.status === 'em-andamento' ? 'bg-blue-50 text-blue-600' :
+                              proj.status === 'planejamento' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+                          )}>
+                            {proj.status.replace('-', ' ')}
+                          </Badge>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 line-clamp-1 group-hover:text-violet-600 transition-colors">{proj.titulo}</h3>
+                        <p className="text-xs text-muted-foreground font-medium italic">{proj.tema}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="text-slate-300 hover:text-rose-500 rounded-xl transition-all" onClick={() => setDeleteTarget(proj)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 line-clamp-1 group-hover:text-violet-600 transition-colors">{proj.titulo}</h3>
-                    <p className="text-xs text-muted-foreground font-medium italic">{proj.tema}</p>
-                  </div>
-                  <Button variant="ghost" size="icon" className="text-slate-300 hover:text-rose-500 rounded-xl transition-all" onClick={() => setDeleteTarget(proj)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-end">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso Executivo</span>
-                    <span className="text-xs font-bold text-slate-700">{proj.progresso}%</span>
-                  </div>
-                  <Progress value={proj.progresso} className="h-2 bg-slate-100 shadow-inner" />
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso Executivo</span>
+                        <span className="text-xs font-bold text-slate-700">{proj.progresso}%</span>
+                      </div>
+                      <Progress value={proj.progresso} className="h-2 bg-slate-100 shadow-inner" />
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    <Users className="w-3.5 h-3.5 text-slate-300" />
-                    {proj.turmas?.[0] || 'Sem Turma'}
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <Users className="w-3.5 h-3.5 text-slate-300" />
+                        {proj.turmas?.[0] || 'Sem Turma'}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                        {proj.dataFim ? formatDate(proj.dataFim) : 'S/ Data'}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    <Calendar className="w-3.5 h-3.5 text-slate-300" />
-                    {proj.dataFim ? formatDate(proj.dataFim) : 'S/ Data'}
-                  </div>
-                </div>
-              </div>
 
-              <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-violet-50 transition-colors">
-                <div className="flex -space-x-2">
-                  {[1, 2].map(i => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm">P</div>
-                  ))}
-                  <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm">+{proj.colaboradores || 0}</div>
-                </div>
-                <Button variant="ghost" className="text-[10px] font-black text-violet-600 gap-2 uppercase tracking-widest hover:bg-transparent hover:gap-3 transition-all">
-                  Painel de Controle <ArrowUpRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )) : (
+                  <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between group-hover:bg-violet-50 transition-colors">
+                    <div className="flex -space-x-2">
+                      {[1, 2].map(i => (
+                        <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm">P</div>
+                      ))}
+                      <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm">+{proj.colaboradores || 0}</div>
+                    </div>
+                    <Button variant="ghost" className="text-[10px] font-black text-violet-600 gap-2 uppercase tracking-widest hover:bg-transparent hover:gap-3 transition-all">
+                      Painel de Controle <ArrowUpRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+        ) : (
           <div className='col-span-full py-32 flex flex-col items-center justify-center space-y-4 bg-white rounded-[3rem] border border-dashed border-slate-200'>
             <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
               <Rocket className="w-10 h-10" />

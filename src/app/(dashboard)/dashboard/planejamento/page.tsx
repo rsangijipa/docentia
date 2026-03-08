@@ -11,6 +11,7 @@ import {
   Pencil,
   Trash2,
   ArrowRight,
+  Sparkles,
   Loader2
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -36,6 +37,8 @@ type CoursePlanForm = {
   title: string;
   description: string;
   turmaId: string;
+  serie: string;
+  disciplina: string;
   year: string;
 };
 
@@ -43,6 +46,8 @@ const initialForm: CoursePlanForm = {
   title: '',
   description: '',
   turmaId: '',
+  serie: '',
+  disciplina: '',
   year: '2026'
 };
 
@@ -116,6 +121,8 @@ export default function PlanejamentoPage() {
       title: plan.title,
       description: plan.description || '',
       turmaId: plan.turmaId,
+      serie: plan.serie || '',
+      disciplina: plan.disciplina || '',
       year: plan.year || '2026'
     });
     setOpen(true);
@@ -179,7 +186,11 @@ export default function PlanejamentoPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <LayoutDashboard className="w-4 h-4" />
-                    Turma: <span className="font-bold text-slate-700">{turma?.nome || 'Não vinculada'}</span>
+                    Turma: <span className="font-bold text-slate-700">{turma?.nome || 'Não vinculada'} ({plan.serie || '-'})</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <Sparkles className="w-4 h-4" />
+                    Disciplina: <span className="font-bold text-slate-700">{plan.disciplina || '-'}</span>
                   </div>
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                     {plan.description || 'Sem descrição cadastrada.'}
@@ -223,6 +234,27 @@ export default function PlanejamentoPage() {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Disciplina</Label>
+                <Input
+                  className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm font-bold"
+                  value={form.disciplina}
+                  onChange={(e) => setForm({ ...form, disciplina: e.target.value })}
+                  placeholder="Ex: Matematica"
+                />
+              </div>
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Serie/Ano</Label>
+                <Input
+                  className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm font-bold"
+                  value={form.serie}
+                  onChange={(e) => setForm({ ...form, serie: e.target.value })}
+                  placeholder="Ex: 9o Ano A"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

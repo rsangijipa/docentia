@@ -79,6 +79,22 @@ export default function TemplatesPage() {
     }
   });
 
+  const duplicateMutation = useMutation({
+    mutationFn: (template: any) => {
+      const { id, ...data } = template;
+      return TemplateServiceFB.create({
+        ...data,
+        titulo: `${data.titulo} (Cópia)`,
+        teacherId: user?.id,
+        createdAt: new Date().toISOString()
+      });
+    },
+    onSuccess: () => {
+      toast.success('Template duplicado!');
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+    }
+  });
+
   const filteredTemplates = templates.filter((t: any) =>
     t.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.categoria.toLowerCase().includes(searchTerm.toLowerCase())
@@ -202,8 +218,13 @@ export default function TemplatesPage() {
                 </div>
               </div>
               <div className="p-8 bg-slate-50 group-hover:bg-white transition-colors border-t border-slate-100 flex items-center justify-between">
-                <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-indigo-600 gap-2 hover:bg-transparent px-0">
-                  <Copy className="w-4 h-4" /> Duplicar Modelo
+                <Button
+                  variant="ghost"
+                  className="text-[10px] font-black uppercase tracking-widest text-indigo-600 gap-2 hover:bg-transparent px-0"
+                  onClick={() => duplicateMutation.mutate(template)}
+                  disabled={duplicateMutation.isPending}
+                >
+                  <Copy className="w-4 h-4" /> {duplicateMutation.isPending ? 'Duplicando...' : 'Duplicar Modelo'}
                 </Button>
                 <Button variant="ghost" className="h-10 w-10 text-slate-400 hover:text-indigo-600 rounded-xl">
                   <ArrowUpRight className="w-5 h-5" />
@@ -235,7 +256,7 @@ export default function TemplatesPage() {
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Template Auto-Gen</h4>
             <h3 className="text-4xl font-serif font-black italic text-white tracking-tight">Potencialize seus Modelos</h3>
             <p className="text-zinc-400 font-medium leading-relaxed italic text-lg max-w-2xl">
-              &quot;Identificamos que você repete a estrutura de 'Problematização' em seus planos. Deseja transformar este padrão em um Smart Template?&quot;
+              &quot;Identificamos que você repete a estrutura de &apos;Problematização&apos; em seus planos. Deseja transformar este padrão em um Smart Template?&quot;
             </p>
           </div>
           <Button className="h-16 px-10 rounded-2xl bg-white text-slate-950 hover:bg-primary hover:text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-2x transition-all">

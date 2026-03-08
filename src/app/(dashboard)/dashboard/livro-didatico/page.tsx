@@ -225,9 +225,11 @@ export default function TextbookPage() {
                 </div>
               </div>
               <div className="p-8 bg-slate-50 group-hover:bg-white transition-colors border-t border-slate-100">
-                <Button variant="ghost" className="w-full text-[10px] font-black uppercase tracking-widest text-primary gap-2 hover:bg-transparent">
-                  Acessar Conteúdo <ArrowUpRight className="w-4 h-4" />
-                </Button>
+                <Link href={`/dashboard/livro-didatico/${book.id}`}>
+                  <Button variant="ghost" className="w-full text-[10px] font-black uppercase tracking-widest text-primary gap-2 hover:bg-transparent">
+                    Acessar Conteúdo <ArrowUpRight className="w-4 h-4" />
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>

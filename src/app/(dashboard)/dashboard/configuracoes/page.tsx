@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Bell, Shield, Palette, School, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { UserServiceFB } from '@/services/firebase/domain-services';
 import { toast } from 'sonner';
 
 const tabs = [
@@ -19,20 +21,44 @@ const tabs = [
 export default function ConfiguracoesPage() {
     const { user, loading } = useAuth();
     const [activeTab, setActiveTab] = useState('perfil');
-    const [nome, setNome] = useState(user?.name ?? '');
+    const [nome, setNome] = useState('');
     const [escola, setEscola] = useState('');
     const [disciplina, setDisciplina] = useState('');
 
-    // Sincronizar estado quando o usuário carregar
-    useState(() => {
-        if (user?.name) setNome(user.name);
+    const { data: profile } = useQuery({
+        queryKey: ['userProfile', user?.email],
+        queryFn: () => user?.email ? UserServiceFB.getByEmail(user.email) : null,
+        enabled: !!user?.email
     });
+
+    // Sincronizar estado quando o perfil carregar
+    useEffect(() => {
+        if (profile) {
+            setNome(profile.nome || user?.name || '');
+            setEscola(profile.escola || '');
+            setDisciplina(profile.disciplina || '');
+        }
+    }, [profile, user]);
 
     if (loading) return null;
     if (!user) return null;
 
+    const queryClient = useQueryClient();
+    const updateMutation = useMutation({
+        mutationFn: (data: any) => user?.id ? UserServiceFB.updateProfile(user.id, data) : Promise.reject(),
+        onSuccess: () => {
+            toast.success('Configurações salvas com sucesso!');
+            queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        },
+        onError: () => toast.error('Erro ao salvar configurações.')
+    });
+
     const handleSave = () => {
-        toast.success('Configurações salvas com sucesso!');
+        updateMutation.mutate({
+            name: nome,
+            escola,
+            disciplina
+        });
     };
 
     return (

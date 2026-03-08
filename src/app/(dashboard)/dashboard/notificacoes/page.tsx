@@ -50,6 +50,14 @@ export default function NotificationsPage() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => NotificationServiceFB.delete(id),
+    onSuccess: () => {
+      toast.success('Notificação removida.');
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+
   const unreadCount = notifications.filter((n: any) => !n.read).length;
 
   if (isLoading) {
@@ -138,7 +146,15 @@ export default function NotificationsPage() {
               </div>
 
               <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
-                <Button variant="ghost" className="h-12 w-12 rounded-xl bg-slate-50 text-slate-400 hover:text-rose-500 transition-all">
+                <Button
+                  variant="ghost"
+                  className="h-12 w-12 rounded-xl bg-slate-50 text-slate-400 hover:text-rose-500 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteMutation.mutate(notif.id);
+                  }}
+                  disabled={deleteMutation.isPending}
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>

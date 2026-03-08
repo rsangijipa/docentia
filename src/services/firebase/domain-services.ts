@@ -443,6 +443,10 @@ export class NotificationServiceFB {
         const promises = unread.map(n => this.markAsRead(n.id));
         return Promise.all(promises);
     }
+
+    static async delete(id: string) {
+        return await FirestoreService.delete(this.collection, id);
+    }
 }
 
 export class TextbookServiceFB {
@@ -452,6 +456,10 @@ export class TextbookServiceFB {
         return await FirestoreService.getAll<any>(this.collection, [
             where('teacherId', '==', userId)
         ]);
+    }
+
+    static async getById(id: string) {
+        return await FirestoreService.getOne<any>(this.collection, id);
     }
 
     static async create(data: any) {

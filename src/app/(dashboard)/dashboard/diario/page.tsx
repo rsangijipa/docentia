@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { ClassroomServiceFB, DiaryEntryServiceFB } from '@/services/firebase/domain-services';
+import { ClassroomServiceFB, DiaryEntryServiceFB, StudentServiceFB } from '@/services/firebase/domain-services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ type DiaryForm = {
   conteudoMinistrado: string;
   observacoes: string;
   status: string;
+  attendance: Record<string, boolean>;
 };
 
 const initialForm: DiaryForm = {
@@ -36,6 +37,7 @@ const initialForm: DiaryForm = {
   conteudoMinistrado: '',
   observacoes: '',
   status: 'Realizado',
+  attendance: {},
 };
 
 
@@ -60,6 +62,12 @@ export default function DiarioPage() {
     queryKey: ['diaries', user?.id],
     queryFn: () => user?.id ? DiaryEntryServiceFB.getByTeacher(user.id) : [],
     enabled: !!user?.id,
+  });
+
+  const { data: students = [], isLoading: loadingStudents } = useQuery({
+    queryKey: ['students', form.turmaId],
+    queryFn: () => form.turmaId ? StudentServiceFB.getByClass(form.turmaId) : [],
+    enabled: !!form.turmaId && open
   });
 
   const loading = loadingTurmas || loadingItems;
@@ -89,6 +97,7 @@ export default function DiarioPage() {
       conteudoMinistrado: entry.conteudoMinistrado || entry.content || '',
       observacoes: entry.observacoes || entry.observations || '',
       status: entry.status || 'Realizado',
+      attendance: entry.attendance || {},
     });
     setOpen(true);
   };
@@ -142,6 +151,7 @@ export default function DiarioPage() {
       observacoes: form.observacoes,
       observations: form.observacoes,
       status: form.status,
+      attendance: form.attendance,
       updatedAt: new Date().toISOString(),
     };
 
@@ -269,6 +279,51 @@ export default function DiarioPage() {
                 value={form.conteudoMinistrado}
                 onChange={(e) => setForm((p) => ({ ...p, conteudoMinistrado: e.target.value }))}
               />
+            </div>
+
+            <div className='space-y-4'>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Chamada / Presença</Label>
+              <div className='max-h-[240px] overflow-y-auto border border-slate-100 rounded-2xl bg-white divide-y divide-slate-50'>
+                {loadingStudents ? (
+                  <div className='p-6 text-center space-y-2'>
+                    <Loader2 className='w-5 h-5 animate-spin mx-auto text-primary' />
+                    <p className='text-[10px] text-slate-400 font-bold uppercase tracking-widest'>Sincronizando alunos...</p>
+                  </div>
+                ) : students.length > 0 ? (
+                  students.map((aluno: any) => (
+                    <div key={aluno.id} className='p-4 flex items-center justify-between group hover:bg-slate-50 transition-colors'>
+                      <div className='space-y-0.5'>
+                        <p className='text-sm font-bold text-slate-700'>{aluno.nome}</p>
+                        <p className='text-[10px] text-slate-400 font-medium'>Matricula: {aluno.matricula || '---'}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={form.attendance[aluno.id] !== false ? 'default' : 'outline'}
+                        className={cn(
+                          "h-10 w-10 rounded-xl text-[11px] font-black p-0 shadow-sm transition-all",
+                          form.attendance[aluno.id] !== false ? "bg-emerald-500 hover:bg-emerald-600 border-none" : "text-slate-300 border-slate-100"
+                        )}
+                        onClick={() => setForm(p => ({
+                          ...p,
+                          attendance: {
+                            ...p.attendance,
+                            [aluno.id]: form.attendance[aluno.id] === false
+                          }
+                        }))}
+                      >
+                        {form.attendance[aluno.id] !== false ? 'P' : 'F'}
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className='p-8 text-center'>
+                    <p className='text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed'>
+                      {form.turmaId ? 'Nenhum aluno matriculado nesta turma.' : 'Selecione uma turma para realizar a chamada.'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className='space-y-2.5'>

@@ -65,35 +65,67 @@ export default function PendenciasPage() {
     // Consolidar Pendências Reais
     const pendencias = React.useMemo(() => {
         const tasks: any[] = [];
+        const hoje = new Date();
 
-        // 1. Planos de Aula sem conteúdo ou futuros
+        // 1. Planos de Aula (Atrasados ou sem objetivos)
         planos.forEach((p: any) => {
-            tasks.push({
-                id: `plano-${p.id}`,
-                titulo: `Preparar Aula: ${p.topic || p.titulo}`,
-                vencimento: formatDate(p.date),
-                status: 'pendente',
-                prioridade: 'media',
-                tipo: 'Planejamento',
-                raw: p
-            });
+            const dataPlano = new Date(p.date || p.data);
+            if (dataPlano < hoje || !p.goals || !p.topic) {
+                tasks.push({
+                    id: `plano-${p.id}`,
+                    titulo: `Preparar Aula: ${p.topic || p.titulo || 'Sem Título'}`,
+                    vencimento: formatDate(p.date || p.data),
+                    status: 'pendente',
+                    prioridade: dataPlano < hoje ? 'alta' : 'media',
+                    tipo: 'Planejamento',
+                    raw: p
+                });
+            }
         });
 
-        // 2. Avaliações
+        // 2. Avaliações (Passadas sem notas)
         avaliacoes.forEach((e: any) => {
-            tasks.push({
-                id: `eval-${e.id}`,
-                titulo: `Lançar Notas: ${e.title || e.titulo}`,
-                vencimento: formatDate(e.date),
-                status: 'pendente',
-                prioridade: 'alta',
-                tipo: 'Avaliações',
-                raw: e
-            });
+            const dataEval = new Date(e.date || e.data);
+            if (dataEval < hoje && (!e.results || e.results.length === 0)) {
+                tasks.push({
+                    id: `eval-${e.id}`,
+                    titulo: `Lançar Notas: ${e.title || e.titulo}`,
+                    vencimento: formatDate(e.date || e.data),
+                    status: 'pendente',
+                    prioridade: 'alta',
+                    tipo: 'Avaliações',
+                    raw: e
+                });
+            }
         });
 
-        return tasks.sort((a, b) => new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime());
-    }, [planos, avaliacoes]);
+        // 3. Diários (Frequência pendente para turmas ativas)
+        // Lógica simplificada: verificar se existe diário para o dia de hoje em cada turma
+        turmas.forEach((t: any) => {
+            const temDiarioHoje = diarios.some((d: any) =>
+                d.roomId === t.id &&
+                new Date(d.date).toDateString() === hoje.toDateString()
+            );
+
+            if (!temDiarioHoje) {
+                tasks.push({
+                    id: `diario-hoje-${t.id}`,
+                    titulo: `Registrar Frequência: ${t.nome}`,
+                    vencimento: 'Hoje',
+                    status: 'pendente',
+                    prioridade: 'media',
+                    tipo: 'Diário de Classe',
+                    raw: { roomId: t.id }
+                });
+            }
+        });
+
+        return tasks.sort((a, b) => {
+            if (a.prioridade === 'alta' && b.prioridade !== 'alta') return -1;
+            if (a.prioridade !== 'alta' && b.prioridade === 'alta') return 1;
+            return new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime();
+        });
+    }, [planos, avaliacoes, diarios, turmas]);
 
     const loading = loadingDiarios || loadingEvals || loadingPlanos;
 

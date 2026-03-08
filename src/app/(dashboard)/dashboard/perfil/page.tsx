@@ -14,8 +14,9 @@ import {
   Zap,
   Lock
 } from 'lucide-react';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserServiceFB } from '@/services/firebase/domain-services';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -106,7 +107,7 @@ export default function ProfilePage() {
               <div className="relative group/avatar">
                 <div className="h-32 w-32 rounded-[2.5rem] border-4 border-white bg-slate-100 shadow-2xl overflow-hidden flex items-center justify-center relative">
                   {profile?.photoURL ? (
-                    <img src={profile.photoURL} alt={profile.nome} className="w-full h-full object-cover" />
+                    <Image src={profile.photoURL} alt={profile.nome} width={128} height={128} className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-12 h-12 text-slate-300" />
                   )}

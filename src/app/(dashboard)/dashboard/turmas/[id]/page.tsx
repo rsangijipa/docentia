@@ -15,7 +15,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ClassroomServiceFB } from '@/services/firebase/domain-services';
+import { useQuery } from '@tanstack/react-query';
+import { ClassroomServiceFB, StudentServiceFB } from '@/services/firebase/domain-services';
 
 type Turma = {
   id: string;
@@ -23,36 +24,26 @@ type Turma = {
   serie: string;
   turno: string;
   subject?: { name?: string };
-  alunos?: Array<{ id: string; nome: string; matricula: string }>;
 };
 
 export default function TurmaDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [turma, setTurma] = React.useState<Turma | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const { data: turma, isLoading: loadingTurma, error: errorTurma } = useQuery({
+    queryKey: ['classroom', id],
+    queryFn: () => ClassroomServiceFB.getById(id),
+    enabled: !!id
+  });
 
-  React.useEffect(() => {
-    const fetchTurma = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const data = await ClassroomServiceFB.getById(id);
-        if (!data) {
-          throw new Error('Turma nao encontrada.');
-        }
-        setTurma(data);
-      } catch (err: any) {
-        setError(err?.message || 'Erro inesperado ao carregar turma.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: alunos = [], isLoading: loadingAlunos } = useQuery({
+    queryKey: ['students', id],
+    queryFn: () => StudentServiceFB.getByClass(id),
+    enabled: !!id
+  });
 
-    void fetchTurma();
-  }, [id]);
+  const loading = loadingTurma || loadingAlunos;
+  const error = errorTurma ? (errorTurma as any).message : null;
 
   if (loading) {
     return (
@@ -131,9 +122,9 @@ export default function TurmaDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className='p-8'>
-            {turma.alunos && turma.alunos.length > 0 ? (
+            {alunos.length > 0 ? (
               <div className='space-y-3'>
-                {turma.alunos.map((aluno: any) => (
+                {alunos.map((aluno: any) => (
                   <div key={aluno.id} className='p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between'>
                     <div>
                       <p className='font-bold text-slate-800'>{aluno.nome}</p>

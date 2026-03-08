@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import * as React from 'react';
-import { Calendar, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowRight, Calendar, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -31,6 +31,7 @@ type LessonForm = {
   metodologia: string;
   recursos: string;
   habilidades: string;
+  bnccCodes: string[];
 };
 
 const initialForm: LessonForm = {
@@ -41,6 +42,7 @@ const initialForm: LessonForm = {
   metodologia: '',
   recursos: '',
   habilidades: '',
+  bnccCodes: [],
 };
 
 function dateInputToIso(dateInput: string) {
@@ -102,6 +104,7 @@ export default function PlanosAulaPage() {
       metodologia: plano.methodology || plano.metodologia || '',
       recursos: plano.resources || plano.recursos || '',
       habilidades: plano.habilidades || '',
+      bnccCodes: plano.bnccCodes || [],
     });
     setOpen(true);
   };
@@ -157,6 +160,7 @@ export default function PlanosAulaPage() {
       methodology: form.metodologia,
       resources: form.recursos,
       habilidades: form.habilidades,
+      bnccCodes: form.bnccCodes,
       teacherId: user.id,
       status: 'Planejado',
       updatedAt: new Date().toISOString(),
@@ -357,6 +361,42 @@ export default function PlanosAulaPage() {
                     value={form.recursos}
                     onChange={(e) => setForm((p) => ({ ...p, recursos: e.target.value }))}
                   />
+                </div>
+              </div>
+
+              <div className='space-y-3'>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Habilidades BNCC</Label>
+                <div className='flex flex-wrap gap-2 mb-2'>
+                  {form.bnccCodes.map(code => (
+                    <Badge key={code} className='bg-violet-100 text-violet-700 hover:bg-violet-200 cursor-pointer' onClick={() => setForm(f => ({ ...f, bnccCodes: f.bnccCodes.filter(c => c !== code) }))}>
+                      {code} ×
+                    </Badge>
+                  ))}
+                </div>
+                <div className='flex gap-2'>
+                  <Input
+                    placeholder="Ex: EF09MA01"
+                    className='h-10 rounded-xl uppercase'
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = e.currentTarget.value.trim().toUpperCase();
+                        if (val && !form.bnccCodes.includes(val)) {
+                          setForm(f => ({ ...f, bnccCodes: [...f.bnccCodes, val] }));
+                          e.currentTarget.value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <Button variant="outline" className='h-10 rounded-xl px-4' onClick={(e) => {
+                    e.preventDefault();
+                    const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                    const val = input.value.trim().toUpperCase();
+                    if (val && !form.bnccCodes.includes(val)) {
+                      setForm(f => ({ ...f, bnccCodes: [...f.bnccCodes, val] }));
+                      input.value = '';
+                    }
+                  }}>Add</Button>
                 </div>
               </div>
             </div>

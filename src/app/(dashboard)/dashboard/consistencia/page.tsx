@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function ConsistenciaPage() {
   const { user } = useAuth();
@@ -19,6 +20,89 @@ export default function ConsistenciaPage() {
     queryFn: () => ConsistenciaServiceFB.getAudit(user!.id),
     enabled: !!user?.id
   });
+
+  const handleExportPDF = async () => {
+    if (!data) return;
+
+    try {
+      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib');
+      const pdfDoc = await PDFDocument.create();
+      let page = pdfDoc.addPage([600, 800]);
+      const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+      const drawHeader = () => {
+        page.drawRectangle({
+          x: 0,
+          y: 720,
+          width: 600,
+          height: 80,
+          color: rgb(0.06, 0.09, 0.16),
+        });
+        page.drawText('DOCENTIA - RELATORIO DE CONSISTENCIA', {
+          x: 50,
+          y: 755,
+          size: 16,
+          font: fontBold,
+          color: rgb(1, 1, 1),
+        });
+        page.drawText(`Professor ID: ${user?.id?.slice(0, 8)} | Gerado em: ${new Date().toLocaleDateString()}`, {
+          x: 50,
+          y: 735,
+          size: 8,
+          font: fontRegular,
+          color: rgb(0.8, 0.8, 0.8),
+        });
+      };
+
+      drawHeader();
+
+      page.drawText('SCORE GLOBAL DE CONSISTENCIA:', { x: 50, y: 680, size: 10, font: fontBold });
+      page.drawText(`${data.overallScore}%`, { x: 50, y: 645, size: 32, font: fontBold, color: rgb(0.3, 0.3, 0.9) });
+
+      page.drawText('REGRAS AUDITADAS:', { x: 50, y: 600, size: 10, font: fontBold });
+
+      let y = 570;
+      data.rules.forEach((rule: any) => {
+        page.drawRectangle({
+          x: 50,
+          y: y - 45,
+          width: 500,
+          height: 55,
+          borderColor: rgb(0.9, 0.9, 0.9),
+          borderWidth: 1,
+        });
+
+        page.drawText(rule.title.toUpperCase(), { x: 65, y: y - 15, size: 9, font: fontBold });
+        const desc = rule.description.length > 80 ? rule.description.slice(0, 77) + '...' : rule.description;
+        page.drawText(desc, { x: 65, y: y - 30, size: 7, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+
+        page.drawText(`${rule.score}%`, { x: 510, y: y - 20, size: 12, font: fontBold });
+
+        y -= 65;
+      });
+
+      page.drawText('Este documento e um espelho da consistencia pedagogica digital.', {
+        x: 50,
+        y: 50,
+        size: 7,
+        font: fontRegular,
+        color: rgb(0.6, 0.6, 0.6)
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Consistencia-Docentia.pdf`;
+      link.click();
+      toast.success('Relatório PDF gerado!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Falha ao exportar PDF');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -152,7 +236,10 @@ export default function ConsistenciaPage() {
                 </div>
               </div>
 
-              <Button className="w-full h-12 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-black text-[10px] uppercase tracking-widest">
+              <Button
+                onClick={handleExportPDF}
+                className="w-full h-12 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-black text-[10px] uppercase tracking-widest"
+              >
                 Baixar Relatório PDF
               </Button>
             </CardContent>
