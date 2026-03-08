@@ -40,9 +40,6 @@ export default function ConfiguracoesPage() {
         }
     }, [profile, user]);
 
-    if (loading) return null;
-    if (!user) return null;
-
     const queryClient = useQueryClient();
     const updateMutation = useMutation({
         mutationFn: (data: any) => user?.id ? UserServiceFB.updateProfile(user.id, data) : Promise.reject(),
@@ -52,6 +49,9 @@ export default function ConfiguracoesPage() {
         },
         onError: () => toast.error('Erro ao salvar configurações.')
     });
+
+    if (loading) return null;
+    if (!user) return null;
 
     const handleSave = () => {
         updateMutation.mutate({
