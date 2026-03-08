@@ -3,6 +3,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+
+import { auth, db } from '@/lib/firebase/client';
+import { loginWithEmail, logoutUser, registerWithEmail } from '@/lib/firebase/auth';
 
 export interface User {
   id: string;
@@ -41,7 +45,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await response.json();
     }
     const text = await response.text();
-    return { error: text || 'Resposta invalida da API' };
+    return { success: false, data: null, errorCode: 'INTERNAL_ERROR', message: text || 'Resposta invalida da API' };
+  };
+
+  const establishServerSession = async (idToken: string) => {
+    const response = await fetch('/api/auth/session', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+
+    const payload = await readApiPayload(response);
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.message || 'Falha ao estabelecer sessao segura');
+    }
   };
 
   const refreshUser = async () => {
@@ -52,15 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cache: 'no-store',
       });
 
-      if (!response.ok) {
-        setUser(null);
-        return;
-      }
+      const payload = await readApiPayload(response);
+      const sessionUser = payload?.data?.user;
 
-      const data = await response.json();
-      const sessionUser = data?.user;
-
-      if (!sessionUser) {
+      if (!response.ok || !payload?.success || !sessionUser) {
         setUser(null);
         return;
       }
@@ -79,6 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const checkSession = async () => {
+      try {
+        if (auth.currentUser) {
+          const token = await auth.currentUser.getIdToken(true);
+          await establishServerSession(token);
+        }
+      } catch {
+        // Ignore and continue to session check.
+      }
+
       await refreshUser();
       setLoading(false);
     };
@@ -89,17 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, pass: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pass }),
-      });
-
-      const data = await readApiPayload(response);
-      if (!response.ok) {
-        throw new Error(data?.error || 'Credenciais invalidas');
-      }
+      const fbUser = await loginWithEmail(email, pass);
+      const token = await fbUser.getIdToken(true);
+      await establishServerSession(token);
 
       await refreshUser();
       toast.success('Bem-vindo de volta!');
@@ -117,23 +131,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async ({ name, email, pass, role, schoolId }: { name: string, email: string, pass: string, role?: string, schoolId?: string }) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          password: pass,
-          role,
-          schoolId,
-        }),
-      });
+      const fbUser = await registerWithEmail(name, email, pass);
 
-      const data = await readApiPayload(response);
-      if (!response.ok) {
-        throw new Error(data?.error || 'Erro ao criar conta');
-      }
+      await setDoc(doc(db, 'users', fbUser.uid), {
+        id: fbUser.uid,
+        email,
+        name,
+        role: role || 'TEACHER',
+        schoolId: schoolId || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      const token = await fbUser.getIdToken(true);
+      await establishServerSession(token);
 
       await refreshUser();
       toast.success(`Conta criada com sucesso! Bem-vindo, ${name}.`);
@@ -151,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     setLoading(true);
     try {
+      await logoutUser();
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { decrypt, SESSION_NAME } from '@/lib/auth-service';
+import { decrypt, SESSION_NAME } from '@/lib/session-token';
 
 // Add paths that should be protected
 const protectedRoutes = ['/dashboard'];

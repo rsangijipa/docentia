@@ -1,44 +1,63 @@
-import { NextResponse } from "next/server";
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-import { getSession } from "@/lib/auth-service";
-import { TurmaService } from "@/services/turmaService";
+import { NextRequest } from 'next/server';
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+import { getSession } from '@/lib/auth-service';
+import { TurmaService } from '@/services/turmaService';
+import { turmaPatchSchema } from '@/lib/api-schemas';
+import { apiError, apiSuccess } from '@/lib/api-response';
+
+async function getOwnedTurma(id: string, teacherId: string) {
+  const turma = await TurmaService.getById(id);
+  if (!turma) return { turma: null, error: apiError('NOT_FOUND', 'Turma nao encontrada', 404) };
+  if (turma.teacherId !== teacherId) {
+    return { turma: null, error: apiError('FORBIDDEN', 'Sem permissao para esta turma', 403) };
+  }
+  return { turma, error: null };
+}
 
 export async function DELETE(
-    request: Request,
-    { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
-    const session = await getSession();
-    if (!session) {
-        return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
+  const session = await getSession();
+  if (!session?.userId) {
+    return apiError('UNAUTHORIZED', 'Nao autorizado', 401);
+  }
 
-    try {
-        const id = params.id;
-        await TurmaService.delete(id);
-        return NextResponse.json({ success: true });
-    } catch (error) {
-        console.error("Error deleting turma:", error);
-        return NextResponse.json({ error: "Erro ao excluir turma" }, { status: 500 });
-    }
+  try {
+    const ownership = await getOwnedTurma(params.id, session.userId as string);
+    if (ownership.error) return ownership.error;
+
+    await TurmaService.delete(params.id);
+    return apiSuccess({ deleted: true });
+  } catch (error) {
+    console.error('Error deleting turma:', error);
+    return apiError('INTERNAL_ERROR', 'Erro ao excluir turma', 500);
+  }
 }
 
 export async function PATCH(
-    request: Request,
-    { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
-    const session = await getSession();
-    if (!session) {
-        return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const session = await getSession();
+  if (!session?.userId) {
+    return apiError('UNAUTHORIZED', 'Nao autorizado', 401);
+  }
+
+  try {
+    const ownership = await getOwnedTurma(params.id, session.userId as string);
+    if (ownership.error) return ownership.error;
+
+    const parsed = turmaPatchSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return apiError('INVALID_REQUEST', 'Payload invalido para atualizacao de turma', 400);
     }
 
-    try {
-        const id = params.id;
-        const body = await request.json();
-        const updated = await TurmaService.update(id, body);
-        return NextResponse.json({ success: true, turma: updated });
-    } catch (error) {
-        console.error("Error updating turma:", error);
-        return NextResponse.json({ error: "Erro ao atualizar turma" }, { status: 500 });
-    }
+    const updated = await TurmaService.update(params.id, parsed.data);
+    return apiSuccess({ turma: updated });
+  } catch (error) {
+    console.error('Error updating turma:', error);
+    return apiError('INTERNAL_ERROR', 'Erro ao atualizar turma', 500);
+  }
 }

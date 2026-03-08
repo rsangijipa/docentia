@@ -1,43 +1,49 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { getSession } from "@/lib/auth-service";
+import { apiSuccess } from "@/lib/api-response";
+import { getFirebaseAdminAuth, getFirebaseAdminDb } from "@/lib/firebase-admin";
 
 export async function GET() {
-    const session = await getSession();
+  const session = await getSession();
+  if (!session || !session.userId) {
+    return apiSuccess({ user: null });
+  }
 
-    if (!session || !session.userId) {
-        return NextResponse.json({ user: null }, { status: 200 });
+  let email: string | null = null;
+  let name = "Usuario";
+  let role = (session.role as string) || "TEACHER";
+  let schoolId: string | null = (session.schoolId as string) || null;
+
+  try {
+    const authUser = await getFirebaseAdminAuth().getUser(session.userId as string);
+    email = authUser.email || null;
+    name = authUser.displayName || name;
+  } catch {
+    // Keep session-only fallback.
+  }
+
+  try {
+    const doc = await getFirebaseAdminDb().collection("users").doc(session.userId as string).get();
+    if (doc.exists) {
+      const data = doc.data() || {};
+      role = (data.role as string) || role;
+      schoolId = (data.schoolId as string) || schoolId;
+      name = (data.name as string) || name;
+      email = (data.email as string) || email;
     }
+  } catch {
+    // Keep session/user-auth fallback.
+  }
 
-    try {
-        const { UserService } = await import("@/services/userService");
-        const user = await UserService.findUserById(session.userId);
-        if (!user) {
-            return NextResponse.json({ user: null }, { status: 200 });
-        }
-
-        return NextResponse.json({
-            success: true,
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                profile: user.profile
-            }
-        });
-
-    } catch (error: any) {
-        console.error("Session check error:", error);
-        return NextResponse.json({
-            user: {
-                id: session.userId,
-                email: null,
-                name: "Usuario",
-                role: (session.role as string) || "TEACHER",
-                profile: { schoolId: (session.schoolId as string) || null }
-            }
-        }, { status: 200 });
-    }
+  return apiSuccess({
+    user: {
+      id: session.userId,
+      email,
+      name,
+      role,
+      profile: { schoolId },
+    },
+  });
 }

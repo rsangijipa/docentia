@@ -148,8 +148,8 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="mt-6 text-center text-sm text-slate-500">
-              <p>Email: <b>admin@admin.com</b></p>
-              <p>Senha: <b>1234567890</b></p>
+              <p>Use sua conta Firebase.</p>
+              <p>Se ainda nao tiver conta, clique em <b>crie uma conta gratuitamente</b>.</p>
             </div>
           </div>
         </div>

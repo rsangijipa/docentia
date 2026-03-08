@@ -1,27 +1,26 @@
-import { NextResponse } from 'next/server';
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { getSession } from '@/lib/auth-service';
 import { DashboardService } from '@/services/dashboardService';
+import { apiError, apiSuccess } from '@/lib/api-response';
 
 export async function GET() {
     const session = await getSession();
 
     if (!session || !session.userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return apiError('UNAUTHORIZED', 'Unauthorized', 401);
     }
 
     try {
         const stats = await DashboardService.getStats(session.userId);
         const agenda = await DashboardService.getDailyAgenda(session.userId);
 
-        return NextResponse.json({
-            success: true,
+        return apiSuccess({
             stats,
             agenda
         });
     } catch (error: any) {
         console.error('Dashboard data error:', error);
-        return NextResponse.json({ error: 'Failed to fetch dashboard data' }, { status: 500 });
+        return apiError('INTERNAL_ERROR', 'Failed to fetch dashboard data', 500);
     }
 }

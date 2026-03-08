@@ -24,7 +24,10 @@ export const StudentService = {
 
     async getById(id: string) {
         return await prisma.student.findUnique({
-            where: { id }
+            where: { id },
+            include: {
+                turma: true
+            }
         });
     },
 

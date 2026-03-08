@@ -1,36 +1,12 @@
-import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-
-const secretKey = process.env.JWT_SECRET || "docentia_jwt_secret_key_2026_premium";
-const key = new TextEncoder().encode(secretKey);
-
-export const SESSION_NAME = "docentia-session";
+import { decrypt, encrypt, SESSION_NAME } from "@/lib/session-token";
 
 export interface SessionPayload {
     userId: string;
     role: string;
     schoolId?: string;
     expires: Date;
-}
-
-export async function encrypt(payload: any) {
-    return await new SignJWT(payload)
-        .setProtectedHeader({ alg: "HS256" })
-        .setIssuedAt()
-        .setExpirationTime("7d")
-        .sign(key);
-}
-
-export async function decrypt(input: string): Promise<any> {
-    try {
-        const { payload } = await jwtVerify(input, key, {
-            algorithms: ["HS256"],
-        });
-        return payload;
-    } catch (error) {
-        return null;
-    }
 }
 
 export async function login(userId: string, role: string, schoolId?: string) {
