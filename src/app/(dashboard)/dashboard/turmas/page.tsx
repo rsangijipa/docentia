@@ -104,7 +104,7 @@ export default function TurmasPage() {
     deleteMutation.mutate(deleteTarget.id);
   };
 
-  const filtered = turmas.filter((t) =>
+  const filtered = turmas.filter((t: any) =>
     (t.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (t.serie || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -183,7 +183,7 @@ export default function TurmasPage() {
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-        {filtered.map((turma) => (
+        {filtered.map((turma: any) => (
           <Card key={turma.id} className='rounded-2xl border-slate-200/60 bg-white'>
             <CardContent className='p-6 space-y-5'>
               <div className='space-y-2'>

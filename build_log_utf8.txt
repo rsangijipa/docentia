@@ -1,0 +1,63 @@
+﻿  Ôû▓ Next.js 14.2.23
+  - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+
+./src/app/(auth)/login/page.tsx
+54:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/(auth)/registro/page.tsx
+63:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/(dashboard)/layout.tsx
+128:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+168:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/landing/LandingFooter.tsx
+15:33  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/landing/LandingNavbar.tsx
+41:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/contexts/AuthContext.tsx
+51:9  Warning: The 'establishServerSession' function makes the dependencies of useEffect Hook (at line 109) change on every render. To fix this, wrap the definition of 'establishServerSession' in its own useCallback() Hook.  react-hooks/exhaustive-deps
+65:9  Warning: The 'refreshUser' function makes the dependencies of useEffect Hook (at line 109) change on every render. To fix this, wrap the definition of 'refreshUser' in its own useCallback() Hook.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+node.exe : Failed to compile.
+No linha:1 caractere:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to comp 
+   ile.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/(dashboard)/dashboard/avaliacoes/page.tsx:163:31
+Type error: Argument of type 'Promise<string | void>[]' is 
+not assignable to parameter of type 'Promise<void>[]'.
+  Type 'Promise<string | void>' is not assignable to type 
+'Promise<void>'.
+    Type 'string | void' is not assignable to type 'void'.
+      Type 'string' is not assignable to type 'void'.
+
+[0m [90m 161 |[39m       [33mEvaluationResultServiceFB[
+39m[33m.[39msaveResult(studentId[33m,[39m 
+activeEval[33m.[39mid[33m,[39m 
+evaluationResults[studentId])[0m
+[0m [90m 162 |[39m     )[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 163 |[39m     
+saveGradesMutation[33m.[39mmutate(ops)[33m;[39m[0m
+[0m [90m     |[39m                               
+[31m[1m^[22m[39m[0m
+[0m [90m 164 |[39m   }[33m;[39m[0m
+[0m [90m 165 |[39m[0m
+[0m [90m 166 |[39m   [36mconst[39m handleGradeChange 
+[33m=[39m (studentId[33m:[39m string[33m,[39m 
+value[33m:[39m string) [33m=>[39m {[0m
+Static worker exited with code: 1 and signal: null
+

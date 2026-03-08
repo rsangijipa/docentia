@@ -113,7 +113,7 @@ export default function PendenciasPage() {
                     </div>
 
                     <div className="space-y-4">
-                        {pendencias.map((task) => (
+                        {pendencias.map((task: any) => (
                             <Card key={task.id} className={cn(
                                 "group hover:shadow-xl transition-all duration-500 border-border/40 bg-white rounded-[2rem] overflow-hidden hover:border-primary/30 cursor-pointer",
                                 task.status === 'concluido' && "opacity-60 saturate-50"
@@ -172,7 +172,7 @@ export default function PendenciasPage() {
                             <div className="space-y-4">
                                 <div className="p-5 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-sm group-hover:bg-white/10 transition-colors">
                                     <p className="text-sm font-medium leading-relaxed">
-                                        "O conselho da Turma 8º A será na quarta-feira. Priorize o relatório do João P. para evitar pendências no dia."
+                                        &quot;O conselho da Turma 8º A será na quarta-feira. Priorize o relatório do João P. para evitar pendências no dia.&quot;
                                     </p>
                                 </div>
 

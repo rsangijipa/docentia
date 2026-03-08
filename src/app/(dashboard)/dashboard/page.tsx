@@ -208,7 +208,7 @@ export default function DashboardHome() {
             {(stats?.notifications ?? []).length === 0 ? (
               <p className="text-sm text-slate-500">Nenhuma notificacao pendente.</p>
             ) : (
-              (stats?.notifications ?? []).slice(0, 5).map((notif) => (
+              (stats?.notifications ?? []).slice(0, 5).map((notif: any) => (
                 <div key={notif.id} className="rounded-lg border p-3">
                   <p className="text-sm font-medium text-slate-900">{notif.title || 'Notificacao'}</p>
                   <p className="text-xs text-slate-600 mt-1">{notif.message || 'Sem detalhes.'}</p>

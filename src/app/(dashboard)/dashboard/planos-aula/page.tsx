@@ -174,8 +174,8 @@ export default function PlanosAulaPage() {
     deleteMutation.mutate(deleteTarget.id);
   };
 
-  const filtered = planos.filter((p) => {
-    const turmaName = turmas.find((t) => t.id === (p.turmaId || p.roomId))?.nome || p.nomeTurma || '';
+  const filtered = planos.filter((p: any) => {
+    const turmaName = turmas.find((t: any) => t.id === (p.turmaId || p.roomId))?.nome || p.nomeTurma || '';
     const title = p.topic || p.titulo || '';
     return `${title} ${turmaName}`.toLowerCase().includes(search.toLowerCase());
   });
@@ -212,8 +212,8 @@ export default function PlanosAulaPage() {
         </Card>
       ) : (
         <div className='space-y-3'>
-          {filtered.map((plano) => {
-            const turma = turmas.find((t) => t.id === (plano.turmaId || plano.roomId));
+          {filtered.map((plano: any) => {
+            const turma = turmas.find((t: any) => t.id === (plano.turmaId || plano.roomId));
             return (
               <Card key={plano.id} className='rounded-2xl'>
                 <CardContent className='p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>

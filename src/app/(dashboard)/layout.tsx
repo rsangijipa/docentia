@@ -309,7 +309,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             { label: 'Turmas', icon: Users, href: '/dashboard/turmas' },
             { label: 'Diário', icon: ClipboardList, href: '/dashboard/diario' },
             { label: 'Menu', icon: Menu, href: '#menu', onClick: () => setIsMobileOpen(true) },
-          ].map((item, i) => {
+          ].map((item: any, i: number) => {
             const active = item.href === '#menu' ? isMobileOpen : isActive(pathname, item.href, item.exact);
             const Icon = item.icon;
 

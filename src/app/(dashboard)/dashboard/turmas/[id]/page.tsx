@@ -134,7 +134,7 @@ export default function TurmaDetailPage() {
           <CardContent className='p-8'>
             {turma.alunos && turma.alunos.length > 0 ? (
               <div className='space-y-3'>
-                {turma.alunos.map((aluno) => (
+                {turma.alunos.map((aluno: any) => (
                   <div key={aluno.id} className='p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between'>
                     <div>
                       <p className='font-bold text-slate-800'>{aluno.nome}</p>

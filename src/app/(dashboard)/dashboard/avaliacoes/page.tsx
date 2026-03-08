@@ -88,7 +88,7 @@ export default function AvaliacoesPage() {
   });
 
   const saveGradesMutation = useMutation({
-    mutationFn: async (ops: Promise<void>[]) => Promise.all(ops),
+    mutationFn: async (ops: Promise<any>[]) => Promise.all(ops),
     onSuccess: () => {
       toast.success('Notas salvas com sucesso!');
       setOpenGrade(false);

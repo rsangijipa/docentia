@@ -122,7 +122,7 @@ export default function ProjetosPage() {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {projetos.map((proj) => (
+        {projetos.map((proj: any) => (
           <Card key={proj.id} className="group hover:shadow-2xl transition-all duration-500 border-border/40 bg-white rounded-[2.5rem] overflow-hidden">
             <CardContent className="p-0">
               <div className="p-8 space-y-6">
@@ -200,7 +200,7 @@ export default function ProjetosPage() {
           <div className="flex-1 space-y-2 text-center md:text-left">
             <h3 className="text-2xl font-serif font-bold italic">Docentia AI: Sugestão de Projeto</h3>
             <p className="text-zinc-400 font-medium leading-relaxed">
-              Identificamos que as turmas do 9º ano estão estudando "Impactos da Revolução Industrial". Que tal um projeto interdisciplinar focando em <span className="text-white italic">"Eco-Hackathon: Soluções Digitais para Resíduos"</span>?
+              Identificamos que as turmas do 9º ano estão estudando &quot;Impactos da Revolução Industrial&quot;. Que tal um projeto interdisciplinar focando em <span className="text-white italic">&quot;Eco-Hackathon: Soluções Digitais para Resíduos&quot;</span>?
             </p>
           </div>
           <Button className="bg-primary hover:bg-primary/90 text-white font-bold h-12 px-8 rounded-xl gap-2 shadow-lg shadow-primary/20">

@@ -198,7 +198,7 @@ export default function DiarioPage() {
       ) : (
         <div className='space-y-3'>
           {filtered.map((entry) => {
-            const turma = turmas.find((t) => t.id === (entry.roomId || entry.turmaId));
+            const turma = turmas.find((t: any) => t.id === (entry.roomId || entry.turmaId));
             return (
               <Card key={entry.id} className='rounded-2xl'>
                 <CardContent className='p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>

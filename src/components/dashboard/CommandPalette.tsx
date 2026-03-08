@@ -130,7 +130,7 @@ export function CommandPalette() {
                                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                                     <Search className="w-6 h-6 text-muted-foreground" />
                                 </div>
-                                <p className="text-sm font-medium text-foreground">Nenhum resultado encontrado para "{query}"</p>
+                                <p className="text-sm font-medium text-foreground">Nenhum resultado encontrado para &quot;{query}&quot;</p>
                                 <p className="text-xs text-muted-foreground mt-1">Tente pesquisar por uma funcionalidade ou comando.</p>
                             </div>
                         )}

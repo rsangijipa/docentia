@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkSession();
-  }, []);
+  }, [establishServerSession, refreshUser]);
 
   const signIn = async (email: string, pass: string) => {
     setLoading(true);
