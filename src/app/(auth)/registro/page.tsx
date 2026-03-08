@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import Image from 'next/image';
 import { Loader2, Mail, Lock, User, ArrowLeft, ArrowRight } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -60,7 +61,14 @@ export default function RegisterPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
           <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-3 shadow-xl border border-slate-100">
-            <img src="/logo.png" className="w-full h-full object-contain" alt="Docentia" />
+            <Image
+              src="/logo.png"
+              width={64}
+              height={64}
+              className="w-full h-full object-contain"
+              alt="Docentia"
+              priority
+            />
           </div>
         </div>
         <h2 className="text-center text-3xl font-extrabold text-slate-900 tracking-tight">

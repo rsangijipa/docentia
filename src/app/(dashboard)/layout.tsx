@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -125,7 +126,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
           <div className="w-16 h-16 rounded-[2rem] bg-white flex items-center justify-center p-3 shadow-2xl border border-slate-100 animate-pulse">
-            <img src="/logo.png" className="w-full h-full object-contain" alt="Docentia" />
+            <Image
+              src="/logo.png"
+              width={64}
+              height={64}
+              className="w-full h-full object-contain"
+              alt="Docentia"
+            />
           </div>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] animate-fade-in">Docentia Office</p>
         </div>
@@ -165,7 +172,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="h-20 px-8 flex items-center justify-between border-b border-slate-100 shrink-0">
           <Link href="/dashboard" className="flex items-center gap-4 group">
             <div className="w-11 h-11 rounded-2xl bg-slate-950 flex items-center justify-center p-2.5 shadow-xl transition-all group-hover:scale-105 group-hover:rotate-2">
-              <img src="/logo.png" className="w-full h-full object-contain brightness-0 invert" alt="Docentia" />
+              <Image
+                src="/logo.png"
+                width={44}
+                height={44}
+                className="w-full h-full object-contain brightness-0 invert"
+                alt="Docentia"
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-serif font-black text-2xl tracking-tight text-slate-800 italic leading-none">Docentia</span>

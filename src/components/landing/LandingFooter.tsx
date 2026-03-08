@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldCheck, GraduationCap, Github, Twitter, Linkedin } from 'lucide-react';
+import Image from 'next/image';
+import { ShieldCheck, GraduationCap, Github, Twitter, Linkedin, Mail } from 'lucide-react';
 
 export function LandingFooter() {
     return (
@@ -12,7 +13,13 @@ export function LandingFooter() {
                     <div className="md:col-span-2 space-y-8">
                         <Link href="/" className="flex items-center gap-4 group">
                             <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center p-2 shadow-xl transition-all group-hover:scale-105 group-hover:rotate-2">
-                                <img src="/logo.png" className="w-full h-full object-contain brightness-0 invert" alt="Docentia" />
+                                <Image
+                                    src="/logo.png"
+                                    width={40}
+                                    height={40}
+                                    className="w-full h-full object-contain brightness-0 invert"
+                                    alt="Docentia"
+                                />
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-serif font-black text-xl tracking-tighter text-slate-900 italic leading-none">Docentia</span>

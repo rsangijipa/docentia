@@ -10,6 +10,7 @@ import {
   Loader2,
   RefreshCw,
   Users,
+  ShieldCheck,
 } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +25,7 @@ type DashboardPayload = {
     studentsCount: number;
     plansCount: number;
     pendingDiariesCount: number;
+    consistenciaScore: number;
     notifications: Array<{ id: string; title?: string; message?: string; read?: boolean }>;
   };
   agenda: Array<{
@@ -168,6 +170,13 @@ export default function DashboardHome() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Diarios pendentes</CardDescription>
             <CardTitle>{stats?.pendingDiariesCount ?? 0}</CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-primary font-bold"><ShieldCheck className="h-4 w-4" /> Saúde Pedagógica</CardDescription>
+            <CardTitle className="text-primary">{stats?.consistenciaScore ?? 0}%</CardTitle>
           </CardHeader>
         </Card>
       </section>

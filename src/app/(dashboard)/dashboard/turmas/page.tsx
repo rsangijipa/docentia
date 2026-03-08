@@ -35,6 +35,7 @@ export default function TurmasPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<{ id: string; nome: string } | null>(null);
 
   const [newTurma, setNewTurma] = React.useState({
@@ -134,38 +135,61 @@ export default function TurmasPage() {
               <Plus className='w-4 h-4' /> Nova Turma
             </Button>
           </DialogTrigger>
-          <DialogContent className='sm:max-w-[460px] rounded-2xl'>
-            <form onSubmit={handleCreate} className='space-y-6'>
-              <DialogHeader>
-                <DialogTitle>Nova turma</DialogTitle>
-                <DialogDescription>Preencha os dados da turma para iniciar o ciclo.</DialogDescription>
+          <DialogContent className='sm:max-w-[480px] p-0'>
+            <form onSubmit={handleCreate}>
+              <DialogHeader className="bg-slate-50/50">
+                <DialogTitle>Nova Turma</DialogTitle>
+                <DialogDescription>Configure o novo ambiente de aprendizagem para este ciclo.</DialogDescription>
               </DialogHeader>
-              <div className='space-y-4'>
-                <div className='space-y-2'>
-                  <Label htmlFor='nome'>Nome da turma</Label>
-                  <Input id='nome' value={newTurma.nome} onChange={(e) => setNewTurma({ ...newTurma, nome: e.target.value })} required />
+
+              <div className='p-8 sm:p-10 space-y-6'>
+                <div className='space-y-2.5'>
+                  <Label htmlFor='nome' className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome da Turma</Label>
+                  <Input
+                    id='nome'
+                    placeholder="Ex: 9º Ano A - Matutino"
+                    className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
+                    value={newTurma.nome}
+                    onChange={(e) => setNewTurma({ ...newTurma, nome: e.target.value })}
+                    required
+                  />
                 </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='serie'>Serie</Label>
-                  <Input id='serie' value={newTurma.serie} onChange={(e) => setNewTurma({ ...newTurma, serie: e.target.value })} required />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='turno'>Turno</Label>
-                  <select
-                    id='turno'
-                    className='w-full h-10 rounded-lg border border-input bg-background px-3 text-sm'
-                    value={newTurma.turno}
-                    onChange={(e) => setNewTurma({ ...newTurma, turno: e.target.value })}
-                  >
-                    <option value='matutino'>Matutino</option>
-                    <option value='vespertino'>Vespertino</option>
-                    <option value='noturno'>Noturno</option>
-                  </select>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className='space-y-2.5'>
+                    <Label htmlFor='serie' className="text-[10px] font-black uppercase tracking-widest text-slate-400">Série / Ciclo</Label>
+                    <Input
+                      id='serie'
+                      placeholder="Ex: 9º Ano"
+                      className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
+                      value={newTurma.serie}
+                      onChange={(e) => setNewTurma({ ...newTurma, serie: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className='space-y-2.5'>
+                    <Label htmlFor='turno' className="text-[10px] font-black uppercase tracking-widest text-slate-400">Turno</Label>
+                    <select
+                      id='turno'
+                      className='w-full h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-primary outline-none shadow-sm transition-all'
+                      value={newTurma.turno}
+                      onChange={(e) => setNewTurma({ ...newTurma, turno: e.target.value })}
+                    >
+                      <option value='matutino'>☀️ Matutino</option>
+                      <option value='vespertino'>⛅ Vespertino</option>
+                      <option value='noturno'>🌙 Noturno</option>
+                    </select>
+                  </div>
                 </div>
               </div>
+
               <DialogFooter>
-                <Button type='button' variant='outline' onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                <Button type='submit' disabled={createMutation.isPending}>{createMutation.isPending ? 'Salvando...' : 'Salvar turma'}</Button>
+                <Button type='button' variant='outline' onClick={() => setIsCreateOpen(false)} className="rounded-xl h-12 px-6">
+                  Cancelar
+                </Button>
+                <Button type='submit' disabled={createMutation.isPending} className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[10px] gap-2">
+                  {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar Turma'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>

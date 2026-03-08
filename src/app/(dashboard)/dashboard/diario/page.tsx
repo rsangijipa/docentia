@@ -226,62 +226,92 @@ export default function DiarioPage() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className='sm:max-w-[560px]'>
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Editar diario' : 'Novo diario'}</DialogTitle>
-            <DialogDescription>Preencha os dados da aula.</DialogDescription>
+        <DialogContent className='sm:max-w-[580px] p-0'>
+          <DialogHeader className="bg-slate-900 text-white border-none py-12 px-10">
+            <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-[0.2em] text-[10px] mb-2">
+              <ClipboardList className="w-4 h-4" /> Registro de Atividade
+            </div>
+            <DialogTitle className="text-white text-3xl italic">{editing ? 'Editar Registro' : 'Novo Registro de Aula'}</DialogTitle>
+            <DialogDescription className="text-slate-400 font-medium">Documente o progresso pedagógico e ocorrências da aula.</DialogDescription>
           </DialogHeader>
 
-          <div className='grid gap-4 py-4'>
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-              <div className='grid gap-1.5'>
-                <Label>Turma</Label>
+          <div className='p-8 sm:p-10 space-y-6'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
+              <div className='space-y-2.5'>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Turma</Label>
                 <select
-                  className='h-10 rounded-md border border-input bg-background px-3 text-sm'
+                  className='w-full h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-primary outline-none shadow-sm transition-all italic'
                   value={form.turmaId}
                   onChange={(e) => setForm((p) => ({ ...p, turmaId: e.target.value }))}
                 >
-                  <option value=''>Selecione</option>
+                  <option value=''>Selecione a turma...</option>
                   {turmas.map((turma: any) => (
                     <option key={turma.id} value={turma.id}>{turma.nome}</option>
                   ))}
                 </select>
               </div>
-              <div className='grid gap-1.5'>
-                <Label>Data</Label>
-                <Input type='date' value={form.date} onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))} />
+              <div className='space-y-2.5'>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Data da Aula</Label>
+                <Input
+                  type='date'
+                  className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
+                  value={form.date}
+                  onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+                />
               </div>
             </div>
 
-            <div className='grid gap-1.5'>
-              <Label>Conteudo ministrado</Label>
+            <div className='space-y-2.5'>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Conteúdo Ministrado</Label>
               <Input
+                placeholder="Ex: Introdução às Frações Irredutíveis"
+                className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm font-bold text-slate-700"
                 value={form.conteudoMinistrado}
                 onChange={(e) => setForm((p) => ({ ...p, conteudoMinistrado: e.target.value }))}
               />
             </div>
 
-            <div className='grid gap-1.5'>
-              <Label>Observacoes</Label>
-              <Input value={form.observacoes} onChange={(e) => setForm((p) => ({ ...p, observacoes: e.target.value }))} />
+            <div className='space-y-2.5'>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Observações e Ocorrências</Label>
+              <textarea
+                className='w-full min-h-[120px] p-4 rounded-2xl border border-slate-200 bg-white text-sm focus:ring-2 focus:ring-primary outline-none shadow-sm transition-all resize-none'
+                placeholder="Detalhe o comportamento da turma ou necessidades especiais observadas..."
+                value={form.observacoes}
+                onChange={(e) => setForm((p) => ({ ...p, observacoes: e.target.value }))}
+              />
             </div>
 
-            <div className='grid gap-1.5'>
-              <Label>Status</Label>
-              <select
-                className='h-10 rounded-md border border-input bg-background px-3 text-sm'
-                value={form.status}
-                onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
-              >
-                <option value='Realizado'>Realizado</option>
-                <option value='Pendente'>Pendente</option>
-              </select>
+            <div className='space-y-2.5'>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status do Registro</Label>
+              <div className="flex gap-2">
+                {['Realizado', 'Pendente'].map((s) => (
+                  <Button
+                    key={s}
+                    type="button"
+                    variant={form.status === s ? 'default' : 'outline'}
+                    onClick={() => setForm(p => ({ ...p, status: s }))}
+                    className={cn(
+                      "flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest",
+                      form.status === s && s === 'Realizado' && "bg-emerald-500 hover:bg-emerald-600 border-none",
+                      form.status === s && s === 'Pendente' && "bg-amber-500 hover:bg-amber-600 border-none"
+                    )}
+                  >
+                    {s}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : 'Salvar'}</Button>
+          <DialogFooter className="bg-slate-50/50">
+            <Button variant='outline' onClick={() => setOpen(false)} className="rounded-xl h-11 px-6">Cancelar</Button>
+            <Button
+              onClick={handleSubmit}
+              className="rounded-xl h-11 px-8 font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-primary/20"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {(createMutation.isPending || updateMutation.isPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Registro'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

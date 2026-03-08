@@ -202,42 +202,70 @@ export default function CalendarioPage() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className='sm:max-w-[460px]'>
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Editar evento' : 'Novo evento'}</DialogTitle>
-            <DialogDescription>Preencha os campos obrigatorios.</DialogDescription>
-          </DialogHeader>
-          <div className='grid gap-4 py-4'>
-            <div className='grid gap-1.5'>
-              <Label>Titulo</Label>
-              <Input value={form.titulo} onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))} />
+        <DialogContent className='sm:max-w-[480px] p-0 overflow-hidden'>
+          <DialogHeader className="bg-indigo-950 text-white border-none py-12 px-10">
+            <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-2">
+              <CalendarDays className="w-4 h-4" /> Gestão de Cronograma
             </div>
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='grid gap-1.5'>
-                <Label>Tipo</Label>
+            <DialogTitle className="text-white text-3xl italic">{editing ? 'Editar Evento' : 'Novo Evento Escolar'}</DialogTitle>
+            <DialogDescription className="text-indigo-200/60 font-medium">Cadastre feriados, reuniões ou atividades pedagógicas.</DialogDescription>
+          </DialogHeader>
+
+          <div className='p-8 sm:p-10 space-y-6'>
+            <div className='space-y-2.5'>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Título do Evento</Label>
+              <Input
+                placeholder="Ex: Conselho de Classe - 1º Bimestre"
+                className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm font-bold text-slate-700"
+                value={form.titulo}
+                onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))}
+              />
+            </div>
+
+            <div className='grid grid-cols-2 gap-6'>
+              <div className='space-y-2.5'>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categoria</Label>
                 <select
-                  className='h-10 rounded-md border border-input bg-background px-3 text-sm'
+                  className='w-full h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-primary outline-none shadow-sm transition-all italic'
                   value={form.tipo}
                   onChange={(e) => setForm((p) => ({ ...p, tipo: e.target.value }))}
                 >
-                  {['Atividade', 'Prova', 'Reuniao', 'Feriado'].map((tipo) => (
+                  {['Atividade', 'Prova', 'Reunião', 'Feriado'].map((tipo) => (
                     <option key={tipo} value={tipo}>{tipo}</option>
                   ))}
                 </select>
               </div>
-              <div className='grid gap-1.5'>
-                <Label>Horario</Label>
-                <Input type='time' value={form.horario} onChange={(e) => setForm((p) => ({ ...p, horario: e.target.value }))} />
+              <div className='space-y-2.5'>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Horário</Label>
+                <Input
+                  type='time'
+                  className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
+                  value={form.horario}
+                  onChange={(e) => setForm((p) => ({ ...p, horario: e.target.value }))}
+                />
               </div>
             </div>
-            <div className='grid gap-1.5'>
-              <Label>Data</Label>
-              <Input type='date' value={form.data} onChange={(e) => setForm((p) => ({ ...p, data: e.target.value }))} />
+
+            <div className='space-y-2.5'>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Data do Evento</Label>
+              <Input
+                type='date'
+                className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
+                value={form.data}
+                onChange={(e) => setForm((p) => ({ ...p, data: e.target.value }))}
+              />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
+
+          <DialogFooter className="bg-slate-50/50">
+            <Button variant='outline' onClick={() => setOpen(false)} className="rounded-xl h-11 px-6">Cancelar</Button>
+            <Button
+              onClick={handleSubmit}
+              className="rounded-xl h-11 px-10 font-black uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-indigo-200"
+              disabled={submitting}
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Evento'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
