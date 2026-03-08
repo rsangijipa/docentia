@@ -86,7 +86,7 @@ export default function BNCCExplorerPage() {
               </div>
               <div className="p-8 flex-1 flex flex-col justify-between items-start gap-6">
                 <p className="text-slate-600 leading-relaxed text-lg font-medium italic">
-                  "{item.description}"
+                  &quot;{item.description}&quot;
                 </p>
                 <div className="w-full flex justify-between items-center pt-4 border-t border-slate-50">
                   <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-bold border-none h-7">

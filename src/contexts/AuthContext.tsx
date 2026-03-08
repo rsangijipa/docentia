@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: false, data: null, errorCode: 'INTERNAL_ERROR', message: text || 'Resposta invalida da API' };
   };
 
-  const establishServerSession = async (idToken: string) => {
+  const establishServerSession = useCallback(async (idToken: string) => {
     const response = await fetch('/api/auth/session', {
       method: 'POST',
       credentials: 'include',
@@ -60,9 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!response.ok || !payload?.success) {
       throw new Error(payload?.message || 'Falha ao estabelecer sessao segura');
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const response = await fetch('/api/auth/me', {
         method: 'GET',
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setUser(null);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
