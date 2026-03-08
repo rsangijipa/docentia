@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { UserService } from "@/services/userService";
 import { login as setSessionCookie } from "@/lib/auth-service";
-import bcrypt from "bcrypt";
+import { comparePassword } from "@/lib/password";
 
 export async function POST(req: NextRequest) {
     try {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
         }
 
-        const passwordMatch = await bcrypt.compare(password, user.password);
+        const passwordMatch = await comparePassword(password, user.password);
         if (!passwordMatch) {
             return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
         }

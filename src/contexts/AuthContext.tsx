@@ -35,6 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const readApiPayload = async (response: Response) => {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      return await response.json();
+    }
+    const text = await response.text();
+    return { error: text || 'Resposta invalida da API' };
+  };
+
   const refreshUser = async () => {
     try {
       const response = await fetch('/api/auth/me', {
@@ -87,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password: pass }),
       });
 
-      const data = await response.json();
+      const data = await readApiPayload(response);
       if (!response.ok) {
         throw new Error(data?.error || 'Credenciais invalidas');
       }
@@ -121,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }),
       });
 
-      const data = await response.json();
+      const data = await readApiPayload(response);
       if (!response.ok) {
         throw new Error(data?.error || 'Erro ao criar conta');
       }

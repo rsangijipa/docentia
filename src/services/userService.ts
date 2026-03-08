@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcrypt';
+import { hashPassword } from '@/lib/password';
 import { User, Profile, School } from '@prisma/client';
 
 export class UserService {
@@ -10,7 +10,7 @@ export class UserService {
         role?: string;
         schoolId?: string;
     }) {
-        const hashedPassword = await bcrypt.hash(data.password, 10);
+        const hashedPassword = await hashPassword(data.password);
 
         return await prisma.user.create({
             data: {

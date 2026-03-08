@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcrypt';
+import { hashPassword } from '@/lib/password';
 
 export async function GET() {
     try {
-        const hashedPassword = await bcrypt.hash('1234567890', 10);
+        const hashedPassword = await hashPassword('1234567890');
 
         // 1. Create School
         const school = await prisma.school.upsert({
