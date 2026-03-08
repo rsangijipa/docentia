@@ -29,6 +29,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { ClassroomServiceFB } from '@/services/firebase/domain-services';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +43,7 @@ import {
 import { Label } from "@/components/ui/label";
 
 export default function TurmasPage() {
+  const { user } = useAuth();
   const [turmas, setTurmas] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -56,13 +59,11 @@ export default function TurmasPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const fetchTurmas = async () => {
+    if (!user?.id) return;
     try {
       setLoading(true);
-      const res = await fetch('/api/turmas');
-      const data = await res.json();
-      if (data.success) {
-        setTurmas(data.turmas);
-      }
+      const data = await ClassroomServiceFB.getByTeacher(user.id);
+      setTurmas(data);
     } catch (err) {
       toast.error("Falha ao sincronizar ecossistema de turmas.");
     } finally {
@@ -74,41 +75,32 @@ export default function TurmasPage() {
     if (!confirm(`Deseja descontinuar a turma ${nome}? Esta ação é irreversível no ecossistema.`)) return;
 
     try {
-      const res = await fetch(`/api/turmas/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Turma ${nome} removida com sucesso.`);
-        fetchTurmas();
-      } else {
-        throw new Error(data.error);
-      }
+      await ClassroomServiceFB.delete(id);
+      toast.success(`Turma ${nome} removida com sucesso.`);
+      fetchTurmas();
     } catch (err: any) {
       toast.error(err.message || "Erro ao excluir turma.");
     }
   };
 
   React.useEffect(() => {
-    fetchTurmas();
-  }, []);
+    if (user?.id) fetchTurmas();
+  }, [user?.id]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.id) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/turmas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTurma)
+      await ClassroomServiceFB.create({
+        ...newTurma,
+        teacherId: user.id,
+        createdAt: new Date().toISOString()
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Turma ${newTurma.nome} lançada com sucesso.`);
-        setIsCreateOpen(false);
-        setNewTurma({ nome: '', serie: '', turno: 'matutino' });
-        fetchTurmas();
-      } else {
-        throw new Error(data.error);
-      }
+      toast.success(`Turma ${newTurma.nome} lançada com sucesso.`);
+      setIsCreateOpen(false);
+      setNewTurma({ nome: '', serie: '', turno: 'matutino' });
+      fetchTurmas();
     } catch (err: any) {
       toast.error(err.message || "Erro ao criar turma.");
     } finally {

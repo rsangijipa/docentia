@@ -39,6 +39,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { StudentServiceFB, ClassroomServiceFB } from '@/services/firebase/domain-services';
 import {
     Dialog,
     DialogContent,
@@ -51,6 +53,7 @@ import {
 import { Label } from "@/components/ui/label";
 
 export default function AlunosPage() {
+    const { user } = useAuth();
     const [alunos, setAlunos] = React.useState<any[]>([]);
     const [turmas, setTurmas] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
@@ -68,18 +71,16 @@ export default function AlunosPage() {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     const fetchData = async () => {
+        if (!user?.id) return;
         try {
             setLoading(true);
-            const [alunosRes, turmasRes] = await Promise.all([
-                fetch('/api/students'),
-                fetch('/api/turmas')
+            const [alunosData, turmasData] = await Promise.all([
+                StudentServiceFB.getByTeacher(user.id),
+                ClassroomServiceFB.getByTeacher(user.id)
             ]);
 
-            const alunosData = await alunosRes.json();
-            const turmasData = await turmasRes.json();
-
-            if (alunosData.success) setAlunos(alunosData.students);
-            if (turmasData.success) setTurmas(turmasData.turmas);
+            setAlunos(alunosData);
+            setTurmas(turmasData);
         } catch (err) {
             toast.error("Erro ao sincronizar dados dos alunos.");
         } finally {
@@ -88,31 +89,29 @@ export default function AlunosPage() {
     };
 
     React.useEffect(() => {
-        fetchData();
-    }, []);
+        if (user?.id) fetchData();
+    }, [user?.id]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user?.id) return;
         if (!newStudent.turmaId) {
             toast.error("Selecione uma turma para o aluno.");
             return;
         }
         setIsSubmitting(true);
         try {
-            const res = await fetch('/api/students', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newStudent)
+            await StudentServiceFB.create({
+                ...newStudent,
+                teacherId: user.id,
+                frequenciaGeral: 100,
+                desempenhoGeral: 0,
+                createdAt: new Date().toISOString()
             });
-            const data = await res.json();
-            if (data.success) {
-                toast.success(`${newStudent.nome} integrado com sucesso.`);
-                setIsCreateOpen(false);
-                setNewStudent({ nome: '', matricula: '', turmaId: '', status: 'ativo', observacoes: '' });
-                fetchData();
-            } else {
-                throw new Error(data.error);
-            }
+            toast.success(`${newStudent.nome} integrado com sucesso.`);
+            setIsCreateOpen(false);
+            setNewStudent({ nome: '', matricula: '', turmaId: '', status: 'ativo', observacoes: '' });
+            fetchData();
         } catch (err: any) {
             toast.error(err.message || "Erro ao criar aluno.");
         } finally {
@@ -124,14 +123,9 @@ export default function AlunosPage() {
         if (!confirm(`Deseja remover ${nome} do ecossistema? Todos os dados vinculados serão perdidos.`)) return;
 
         try {
-            const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (data.success) {
-                toast.success(`${nome} foi removido com sucesso.`);
-                fetchData();
-            } else {
-                throw new Error(data.error);
-            }
+            await StudentServiceFB.delete(id);
+            toast.success(`${nome} foi removido com sucesso.`);
+            fetchData();
         } catch (err: any) {
             toast.error(err.message || "Erro ao excluir aluno.");
         }

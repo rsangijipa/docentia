@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalIcon, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,6 +10,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { CalendarEventServiceFB } from '@/services/firebase/domain-services';
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -35,11 +38,32 @@ const initEventos: Evento[] = [
 ];
 
 export default function CalendarioPage() {
-  const now = new Date(2026, 2, 7);
+  const { user } = useAuth();
+  const now = new Date(); // Use real current date
   const [current, setCurrent] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
-  const [eventos, setEventos] = useState<Evento[]>(initEventos);
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ titulo: '', tipo: 'Atividade', data: '', horario: '' });
+
+  const fetchData = async () => {
+    if (!user?.id) return;
+    try {
+      setLoading(true);
+      // In a real scenario, we might want to fetch by schoolId. 
+      // For now, let's fetch all or by a generic filter if schoolId isn't in user object yet.
+      const data = await CalendarEventServiceFB.getAllBySchool(user.schoolId || 'default-school');
+      setEventos(data);
+    } catch (err) {
+      console.error("Error fetching calendar events:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+  }, [user?.id]);
 
   const year = current.getFullYear();
   const month = current.getMonth();
@@ -54,12 +78,22 @@ export default function CalendarioPage() {
     return eventos.filter(e => e.data === date);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!form.titulo || !form.data) { toast.error('Informe o título e a data.'); return; }
-    setEventos(prev => [...prev, { id: Date.now(), ...form }]);
-    setForm({ titulo: '', tipo: 'Atividade', data: '', horario: '' });
-    setOpen(false);
-    toast.success('Evento criado!');
+    try {
+      await CalendarEventServiceFB.create({
+        ...form,
+        schoolId: user?.schoolId || 'default-school',
+        teacherId: user?.id,
+        createdAt: new Date().toISOString()
+      });
+      setForm({ titulo: '', tipo: 'Atividade', data: '', horario: '' });
+      setOpen(false);
+      toast.success('Evento criado!');
+      fetchData();
+    } catch (err) {
+      toast.error('Erro ao criar evento.');
+    }
   };
 
   const upcoming = eventos

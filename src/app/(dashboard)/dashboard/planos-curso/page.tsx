@@ -10,6 +10,10 @@ import {
   Dialog, DialogContent, DialogDescription,
   DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { CoursePlanServiceFB } from '@/services/firebase/domain-services';
+import * as React from 'react';
+import { useEffect } from 'react';
 
 interface PlanoCurso {
   id: number;
@@ -27,28 +31,51 @@ const initialPlanos: PlanoCurso[] = [
 ];
 
 export default function PlanosCursoPage() {
-  const [planos, setPlanos] = useState<PlanoCurso[]>(initialPlanos);
+  const { user } = useAuth();
+  const [planos, setPlanos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ titulo: '', serie: '', disciplina: '' });
 
-  const handleCreate = () => {
+  const fetchData = async () => {
+    if (!user?.id) return;
+    try {
+      setLoading(true);
+      // coursePlans are often filtered by school or room. 
+      // For now we'll use a generic fetch or by school if available.
+      const data = await CoursePlanServiceFB.getByTeacher(user.id);
+      setPlanos(data);
+    } catch (err) {
+      toast.error("Erro ao carregar planos de curso.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.id]);
+
+  const handleCreate = async () => {
     if (!form.titulo || !form.serie || !form.disciplina) {
       toast.error('Preencha todos os campos.');
       return;
     }
-    const next: PlanoCurso = {
-      id: Date.now(),
-      titulo: form.titulo,
-      serie: form.serie,
-      disciplina: form.disciplina,
-      status: 'Rascunho',
-      turmas: 0,
-      atualizado: 'Agora',
-    };
-    setPlanos(prev => [next, ...prev]);
-    setForm({ titulo: '', serie: '', disciplina: '' });
-    setOpen(false);
-    toast.success(`Plano "${next.titulo}" criado!`);
+    try {
+      await CoursePlanServiceFB.create({
+        ...form,
+        teacherId: user?.id,
+        status: 'Rascunho',
+        turmas: 0,
+        createdAt: new Date().toISOString()
+      });
+      setForm({ titulo: '', serie: '', disciplina: '' });
+      setOpen(false);
+      toast.success(`Plano "${form.titulo}" criado!`);
+      fetchData();
+    } catch (err) {
+      toast.error('Erro ao criar plano de curso.');
+    }
   };
 
   const statusCls: Record<string, string> = {

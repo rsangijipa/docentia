@@ -3,12 +3,21 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client';
+import {
+  registerWithEmail,
+  loginWithEmail,
+  logoutUser
+} from '@/lib/firebase/auth';
+import { UserServiceFB } from '@/services/firebase/domain-services';
 
 export interface User {
   id: string;
   email: string | null;
   name: string | null;
   role: string | null;
+  schoolId: string | null;
 }
 
 interface AuthContextType {
@@ -34,51 +43,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const refreshUser = async () => {
+  const syncUserFromFirestore = async (fbUser: FirebaseUser) => {
     try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
+      const userData = await UserServiceFB.getByEmail(fbUser.email!);
+      setUser({
+        id: fbUser.uid,
+        email: fbUser.email,
+        name: fbUser.displayName || 'Usuário',
+        role: userData?.role || 'TEACHER',
+        schoolId: userData?.schoolId || null
+      });
     } catch (error) {
-      console.error("Auth me check failed:", error);
-      setUser(null);
-    } finally {
-      setLoading(false);
+      console.error("Error syncing user data:", error);
+      setUser({
+        id: fbUser.uid,
+        email: fbUser.email,
+        name: fbUser.displayName || 'Usuário',
+        role: 'TEACHER',
+        schoolId: null
+      });
     }
   };
 
   useEffect(() => {
-    refreshUser();
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        await syncUserFromFirestore(fbUser);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      await syncUserFromFirestore(auth.currentUser);
+    }
+  };
 
   const signIn = async (email: string, pass: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pass }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Credenciais inválidas');
-      }
-
-      const data = await response.json();
-      setUser(data.user);
-      toast.success(`Bem-vindo, ${data.user.name}!`);
+      const fbUser = await loginWithEmail(email, pass);
+      await syncUserFromFirestore(fbUser);
+      toast.success(`Bem-vindo de volta!`);
       router.push('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao realizar login');
+      toast.error('Erro ao realizar login: Credenciais inválidas');
       throw error;
     } finally {
       setLoading(false);
@@ -88,23 +102,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async ({ name, email, pass, role, schoolId }: { name: string, email: string, pass: string, role?: string, schoolId?: string }) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password: pass, role, schoolId }),
+      const fbUser = await registerWithEmail(name, email, pass);
+
+      // Cria o registro no Firestore
+      await UserServiceFB.updateProfile(fbUser.uid, {
+        id: fbUser.uid,
+        email,
+        name,
+        role: role || 'TEACHER',
+        schoolId: schoolId || null,
+        createdAt: new Date()
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao cadastrar usuário');
-      }
-
-      const data = await response.json();
-      setUser(data.user);
-      toast.success(`Conta criada com sucesso! Bem-vindo, ${data.user.name}.`);
+      await syncUserFromFirestore(fbUser);
+      toast.success(`Conta criada com sucesso! Bem-vindo, ${name}.`);
       router.push('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao realizar cadastro');
+      toast.error('Erro ao realizar cadastro');
       throw error;
     } finally {
       setLoading(false);
@@ -114,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     setLoading(true);
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await logoutUser();
       setUser(null);
       router.push('/login');
       toast.success('Sessão encerrada.');

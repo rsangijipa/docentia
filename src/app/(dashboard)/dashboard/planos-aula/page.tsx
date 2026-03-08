@@ -35,6 +35,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/contexts/AuthContext';
+import { LessonPlanServiceFB, ClassroomServiceFB } from '@/services/firebase/domain-services';
+import * as React from 'react';
+import { useEffect } from 'react';
 
 interface PlanoAula {
   id: number;
@@ -48,13 +52,6 @@ interface PlanoAula {
   habilidades?: string;
 }
 
-const initialPlanos: PlanoAula[] = [
-  { id: 1, titulo: 'Equações de 1º Grau', turma: '6º Ano A', data: '2026-03-10', status: 'Planejado', objetivo: 'Introduzir o conceito de equação e resolução.', habilidades: 'EF07MA18, EF07MA19', metodologia: 'Aula expositiva e dialogada.' },
-  { id: 2, titulo: 'Fração e Porcentagem', turma: '6º Ano A', data: '2026-03-12', status: 'Rascunho', habilidades: 'EF06MA13' },
-  { id: 3, titulo: 'Sistema Respiratório', turma: '7º Ano B', data: '2026-03-08', status: 'Executado', objetivo: 'Compreender os órgãos e funções do sistema respiratório.', metodologia: 'Uso de modelos anatômicos.' },
-  { id: 4, titulo: 'Revolução Industrial', turma: '8º Ano A', data: '2026-03-07', status: 'Executado', objetivo: 'Contextualizar a Revolução Industrial e seus impactos.', habilidades: 'EF08HI03' },
-];
-
 const statusConfig: Record<string, { label: string; cls: string; dot: string }> = {
   Executado: { label: 'Executado', cls: 'bg-slate-100 text-slate-600 border-slate-200', dot: 'bg-slate-400' },
   Planejado: { label: 'Planejado', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100', dot: 'bg-emerald-500' },
@@ -62,13 +59,16 @@ const statusConfig: Record<string, { label: string; cls: string; dot: string }> 
 };
 
 export default function PlanosAulaPage() {
-  const [planos, setPlanos] = useState<PlanoAula[]>(initialPlanos);
+  const { user } = useAuth();
+  const [planos, setPlanos] = useState<any[]>([]);
+  const [turmas, setTurmas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('Todos');
   const [form, setForm] = useState({
     titulo: '',
-    turma: '',
+    turmaId: '',
     data: '',
     objetivo: '',
     metodologia: '',
@@ -76,32 +76,55 @@ export default function PlanosAulaPage() {
     habilidades: ''
   });
 
+  const fetchData = async () => {
+    if (!user?.id) return;
+    try {
+      setLoading(true);
+      const [planosData, turmasData] = await Promise.all([
+        LessonPlanServiceFB.getByTeacher(user.id),
+        ClassroomServiceFB.getByTeacher(user.id)
+      ]);
+      setPlanos(planosData);
+      setTurmas(turmasData);
+    } catch (err) {
+      toast.error("Erro ao carregar roteiros e turmas.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+  }, [user?.id]);
+
   const filtered = planos.filter(p => {
-    const matchSearch = p.titulo.toLowerCase().includes(search.toLowerCase()) || p.turma.toLowerCase().includes(search.toLowerCase());
+    const turma = turmas.find(t => t.id === p.turmaId);
+    const turmaName = turma?.nome || '';
+    const matchSearch = p.titulo.toLowerCase().includes(search.toLowerCase()) ||
+      turmaName.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'Todos' || p.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const handleCreate = () => {
-    if (!form.titulo || !form.turma || !form.data) {
+  const handleCreate = async () => {
+    if (!form.titulo || !form.turmaId || !form.data) {
       toast.error('Preencha os campos obrigatórios (Título, Turma e Data).');
       return;
     }
-    const next: PlanoAula = {
-      id: Date.now(),
-      titulo: form.titulo,
-      turma: form.turma,
-      data: form.data,
-      status: 'Rascunho',
-      objetivo: form.objetivo,
-      metodologia: form.metodologia,
-      recursos: form.recursos,
-      habilidades: form.habilidades,
-    };
-    setPlanos(prev => [next, ...prev]);
-    setForm({ titulo: '', turma: '', data: '', objetivo: '', metodologia: '', recursos: '', habilidades: '' });
-    setOpen(false);
-    toast.success(`Plano "${next.titulo}" criado como rascunho!`);
+    try {
+      await LessonPlanServiceFB.create({
+        ...form,
+        teacherId: user?.id,
+        status: 'Rascunho',
+        createdAt: new Date().toISOString()
+      });
+      setForm({ titulo: '', turmaId: '', data: '', objetivo: '', metodologia: '', recursos: '', habilidades: '' });
+      setOpen(false);
+      toast.success(`Plano "${form.titulo}" criado como rascunho!`);
+      fetchData();
+    } catch (err) {
+      toast.error('Erro ao criar plano de aula.');
+    }
   };
 
   return (
@@ -141,7 +164,17 @@ export default function PlanosAulaPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="pa-turma" className="text-xs font-bold text-slate-700">Turma Responsável <span className="text-rose-500">*</span></Label>
-                      <Input id="pa-turma" placeholder="Ex: 8º Ano B" value={form.turma} onChange={e => setForm(p => ({ ...p, turma: e.target.value }))} />
+                      <select
+                        id="pa-turma"
+                        className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        value={form.turmaId}
+                        onChange={e => setForm(p => ({ ...p, turmaId: e.target.value }))}
+                      >
+                        <option value="">Selecione a Turma</option>
+                        {turmas.map(t => (
+                          <option key={t.id} value={t.id}>{t.nome}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="pa-data" className="text-xs font-bold text-slate-700">Data Prevista <span className="text-rose-500">*</span></Label>
@@ -251,7 +284,7 @@ export default function PlanosAulaPage() {
                         <p className="font-bold text-slate-800 text-base tracking-tight">{plano.titulo}</p>
                         {plano.habilidades && (
                           <div className="flex gap-2">
-                            {plano.habilidades.split(',').map(h => (
+                            {plano.habilidades.split(',').map((h: string) => (
                               <span key={h} className="text-[9px] font-black text-indigo-400 bg-indigo-50/50 px-1.5 py-0.5 rounded-md uppercase">{h.trim()}</span>
                             ))}
                           </div>
@@ -262,9 +295,11 @@ export default function PlanosAulaPage() {
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">
-                        {plano.turma.charAt(0)}
+                        {turmas.find(t => t.id === plano.turmaId)?.nome?.charAt(0) || '?'}
                       </div>
-                      <span className="text-slate-600 text-sm font-bold uppercase tracking-tighter">{plano.turma}</span>
+                      <span className="text-slate-600 text-sm font-bold uppercase tracking-tighter">
+                        {turmas.find(t => t.id === plano.turmaId)?.nome || 'Sem Turma'}
+                      </span>
                     </div>
                   </td>
                   <td className="px-8 py-6">
@@ -316,7 +351,7 @@ export default function PlanosAulaPage() {
                         {sc.label}
                       </Badge>
                       <Badge variant="outline" className="h-6 rounded-lg text-[9px] font-black uppercase tracking-tighter text-slate-400 border-slate-200">
-                        {plano.turma}
+                        {turmas.find(t => t.id === plano.turmaId)?.nome || 'Sem Turma'}
                       </Badge>
                     </div>
                     <h3 className="text-xl font-serif font-black text-slate-900 leading-tight tracking-tight">{plano.titulo}</h3>

@@ -37,7 +37,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMockData } from '@/hooks/use-mock-data';
+import { DashboardServiceFB, LessonPlanServiceFB } from '@/services/firebase/domain-services';
 import { cn } from '@/lib/utils';
 
 export default function DashboardHome() {
@@ -47,21 +47,27 @@ export default function DashboardHome() {
 
   React.useEffect(() => {
     const fetchDashboardData = async () => {
+      if (!user?.id) return;
+
       try {
-        const res = await fetch('/api/dashboard/stats');
-        const json = await res.json();
-        if (json.success) {
-          setData(json);
-        }
+        const [statsData, agendaData] = await Promise.all([
+          DashboardServiceFB.getStats(user.id),
+          LessonPlanServiceFB.getDailyAgenda(user.id)
+        ]);
+
+        setData({
+          ...statsData,
+          agenda: agendaData
+        });
       } catch (err) {
-        console.error('Error fetching dashboard stats:', err);
+        console.error('Error fetching dashboard stats from Firebase:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []);
+  }, [user?.id]);
 
   const firstName = user?.name?.split(' ')[0] ?? 'Professor';
 
@@ -240,7 +246,7 @@ export default function DashboardHome() {
                           <div className="flex justify-between items-start gap-4 mb-4">
                             <div className="space-y-1">
                               <h4 className="font-serif font-black text-xl lg:text-2xl italic tracking-tight leading-tight group-hover/card:text-primary transition-colors">
-                                {item.coursePlan?.room?.nome || 'Turma'} — {item.topic}
+                                {item.nomeTurma || item.coursePlan?.room?.nome || 'Turma'} — {item.topic}
                               </h4>
                               <p className={cn("text-xs font-medium italic opacity-60", i === 0 ? "text-slate-200" : "text-slate-500")}>
                                 {item.content || 'Consulte o plano de aula no módulo de planejamento.'}
