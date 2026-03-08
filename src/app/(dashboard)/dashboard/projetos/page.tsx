@@ -120,27 +120,27 @@ export default function ProjetosPage() {
   return (
     <div className="space-y-8 animate-fade-in pb-10">
       {/* Header Premium */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-violet-950 p-12 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-violet-500/20 blur-[100px] rounded-full -mr-20 -mt-20" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-white p-12 rounded-[3.5rem] border border-slate-200 shadow-2xl relative overflow-hidden text-slate-900">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-violet-500/5 blur-[100px] rounded-full -mr-20 -mt-20" />
 
         <div className="space-y-4 relative z-10">
           <div className="flex items-center gap-2 text-violet-400 font-bold uppercase tracking-[0.2em] text-[10px]">
             <Rocket className="w-4 h-4" />
             Aprendizagem Baseada em Projetos
           </div>
-          <h1 className="text-5xl font-serif font-bold tracking-tight">Projetos</h1>
-          <p className="text-violet-200/60 max-w-xl text-lg font-medium leading-relaxed">
+          <h1 className="text-5xl font-serif font-bold tracking-tight text-slate-900">Projetos</h1>
+          <p className="text-slate-500 max-w-xl text-lg font-medium leading-relaxed">
             Planeje, execute e documente projetos interdisciplinares que transcendem a sala de aula tradicional.
           </p>
         </div>
 
         <div className="relative z-10 flex flex-wrap gap-3">
-          <Button variant="outline" className="h-14 px-8 rounded-2xl border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold gap-2">
+          <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-900 font-bold gap-2">
             <Layout className="w-5 h-5" /> Galeria Nacional
           </Button>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="h-14 px-8 rounded-2xl bg-white text-violet-950 hover:bg-violet-100 font-bold gap-2 shadow-xl shadow-black/20 transition-all active:scale-95">
+              <Button className="h-14 px-8 rounded-2xl bg-violet-950 text-white hover:bg-violet-900 font-bold gap-2 shadow-xl shadow-black/10 transition-all active:scale-95">
                 <Plus className="w-5 h-5" /> Iniciar Projeto
               </Button>
             </DialogTrigger>

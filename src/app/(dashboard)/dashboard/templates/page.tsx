@@ -112,17 +112,17 @@ export default function TemplatesPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
       {/* Header Premium */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 bg-indigo-950 p-16 rounded-[4.5rem] text-white shadow-3xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 blur-[120px] rounded-full -mr-32 -mt-32" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/10 blur-[100px] rounded-full -ml-20 -mb-20" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 bg-white p-16 rounded-[4.5rem] border border-slate-200 shadow-2xl relative overflow-hidden text-slate-900">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full -mr-32 -mt-32" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/5 blur-[100px] rounded-full -ml-20 -mb-20" />
 
         <div className="space-y-6 relative z-10">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px]">
             <Layout className="w-4 h-4" />
             Asset Library
           </div>
-          <h1 className="text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-none">Templates</h1>
-          <p className="text-zinc-400 max-w-xl text-xl font-medium leading-relaxed italic">
+          <h1 className="text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-none text-slate-900">Templates</h1>
+          <p className="text-slate-500 max-w-xl text-xl font-medium leading-relaxed italic">
             Sua biblioteca pessoal de modelos otimizados. Reutilize sua inteligência pedagógica com um clique.
           </p>
         </div>
@@ -130,7 +130,7 @@ export default function TemplatesPage() {
         <div className="relative z-10">
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="h-16 px-10 rounded-2xl bg-white text-indigo-950 hover:bg-primary hover:text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-2xl transition-all active:scale-95">
+              <Button className="h-16 px-10 rounded-2xl bg-indigo-950 text-white hover:bg-primary hover:text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-2xl transition-all active:scale-95">
                 <Plus className="w-5 h-5" /> Novo Template
               </Button>
             </DialogTrigger>

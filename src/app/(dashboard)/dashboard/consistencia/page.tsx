@@ -119,7 +119,7 @@ export default function ConsistenciaPage() {
     <div className="space-y-8 animate-fade-in pb-24">
       {/* Header com Score */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-        <div>
+        <div className="flex-1">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-[0.2em] text-[10px] mb-2">
             <LayoutDashboard className="w-4 h-4" />
             Inteligência e Apoio
@@ -127,27 +127,30 @@ export default function ConsistenciaPage() {
           <h1 className="text-4xl sm:text-5xl font-serif font-black italic tracking-tight text-slate-900 leading-tight">
             Consistência Pedagógica
           </h1>
-          <p className="text-slate-500 mt-4 max-w-2xl font-medium leading-relaxed">
+          <p className="text-slate-500 mt-4 max-w-2xl font-medium leading-relaxed italic">
             Monitoramento em tempo real da aderencia do seu planejamento a BNCC e as diretrizes da rede.
           </p>
         </div>
 
-        <div className="w-full lg:w-auto">
-          <Card className="rounded-[2rem] border-slate-200/60 bg-white shadow-xl p-6 min-w-[280px]">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Índice Global</span>
-              <Badge className={cn(
-                "h-6 rounded-lg font-black text-[9px] uppercase tracking-tighter",
-                score > 80 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
-              )}>
-                {score > 80 ? 'Excelente' : 'Atenção'}
-              </Badge>
+        <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-4">
+          <Card className="rounded-[2.5rem] bg-slate-900 text-white shadow-2xl p-8 min-w-[300px] border-none relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full -mr-16 -mt-16" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Índice Global</span>
+                <Badge className={cn(
+                  "h-6 rounded-lg font-black text-[9px] uppercase tracking-tighter border-none",
+                  score > 80 ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                )}>
+                  {score > 80 ? 'Excelente' : 'Atenção'}
+                </Badge>
+              </div>
+              <div className="flex items-end gap-3 mb-4">
+                <span className="text-6xl font-serif font-black italic text-white leading-none">{score}%</span>
+                <TrendingUp className="w-6 h-6 text-emerald-400 mb-1" />
+              </div>
+              <Progress value={score} className="h-2 rounded-full bg-white/10" />
             </div>
-            <div className="flex items-end gap-3 mb-4">
-              <span className="text-5xl font-serif font-black italic text-slate-900 leading-none">{score}%</span>
-              <TrendingUp className="w-6 h-6 text-emerald-500 mb-1" />
-            </div>
-            <Progress value={score} className="h-2 rounded-full bg-slate-100" />
           </Card>
         </div>
       </div>

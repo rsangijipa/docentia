@@ -112,26 +112,26 @@ export default function ExportPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-12 animate-fade-in pb-24">
       {/* Header Premium */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-zinc-950 p-16 rounded-[4.5rem] text-white shadow-3xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 blur-[120px] rounded-full -mr-32 -mt-32" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full -ml-20 -mb-20" />
+      <div className="flex flex-col md:flex-row justify-between items-center bg-white p-16 rounded-[4.5rem] border border-slate-200 text-slate-900 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full -mr-32 -mt-32" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 blur-[100px] rounded-full -ml-20 -mb-20" />
 
         <div className="space-y-6 relative z-10 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px]">
             <Download className="w-4 h-4" />
             Relatórios & Exportações
           </div>
-          <h1 className="text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-none">Saída de Dados</h1>
-          <p className="text-zinc-400 max-w-xl text-xl font-medium leading-relaxed italic">
+          <h1 className="text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-none text-slate-900">Saída de Dados</h1>
+          <p className="text-slate-500 max-w-xl text-xl font-medium leading-relaxed italic">
             Documente sua jornada pedagógica com exportações precisas em múltiplos formatos de alta fidelidade.
           </p>
         </div>
 
         <div className="relative z-10 mt-10 md:mt-0">
-          <div className='flex flex-col items-center gap-2 p-8 bg-white/5 border border-white/10 rounded-[3rem] backdrop-blur-xl'>
-            <ShieldCheck className='w-10 h-10 text-emerald-400 mb-2' />
-            <span className='text-[10px] font-black uppercase tracking-widest text-white/50'>Segurança de Dados</span>
-            <span className='text-sm font-serif italic font-bold'>Trilha de Auditoria Ativa</span>
+          <div className='flex flex-col items-center gap-2 p-8 bg-slate-50 border border-slate-100 rounded-[3rem] shadow-sm'>
+            <ShieldCheck className='w-10 h-10 text-emerald-600 mb-2' />
+            <span className='text-[10px] font-black uppercase tracking-widest text-slate-400'>Segurança de Dados</span>
+            <span className='text-sm font-serif italic font-bold text-slate-900'>Trilha de Auditoria Ativa</span>
           </div>
         </div>
       </div>

@@ -106,17 +106,17 @@ export default function TextbookPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-24">
       {/* Header Premium */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 bg-slate-900 p-16 rounded-[4.5rem] text-white shadow-3xl relative overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 bg-white p-16 rounded-[4.5rem] border border-slate-200 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 blur-[120px] rounded-full -mr-32 -mt-32" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full -mr-32 -mt-32" />
 
-        <div className="space-y-6 relative z-10">
+        <div className="space-y-6 relative z-10 text-slate-900">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[10px]">
             <Book className="w-4 h-4" />
             Repositório de Materiais
           </div>
-          <h1 className="text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-none">Livro Didático</h1>
-          <p className="text-slate-400 max-w-xl text-xl font-medium leading-relaxed italic">
+          <h1 className="text-5xl md:text-7xl font-serif font-black italic tracking-tighter leading-none text-slate-900">Livro Didático</h1>
+          <p className="text-slate-500 max-w-xl text-xl font-medium leading-relaxed italic">
             Faça o acompanhamento granular por capítulo e turma, integrando o material físico à sua jornada digital.
           </p>
         </div>
@@ -124,7 +124,7 @@ export default function TextbookPage() {
         <div className="relative z-10">
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="h-16 px-10 rounded-2xl bg-white text-slate-900 hover:bg-primary hover:text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-2xl transition-all active:scale-95">
+              <Button className="h-16 px-10 rounded-2xl bg-slate-900 text-white hover:bg-primary hover:text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-2xl transition-all active:scale-95">
                 <Plus className="w-5 h-5" /> Adicionar Livro
               </Button>
             </DialogTrigger>
