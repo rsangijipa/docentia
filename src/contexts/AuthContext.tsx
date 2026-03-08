@@ -111,9 +111,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, pass: string) => {
     setLoading(true);
     try {
-      const fbUser = await loginWithEmail(email, pass);
-      const token = await fbUser.getIdToken(true);
-      await establishServerSession(token);
+      const devLoginResponse = await fetch('/api/auth/dev-login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, pass }),
+      });
+
+      const devPayload = await readApiPayload(devLoginResponse);
+      if (!devLoginResponse.ok || !devPayload?.success) {
+        const fbUser = await loginWithEmail(email, pass);
+        const token = await fbUser.getIdToken(true);
+        await establishServerSession(token);
+      }
 
       await refreshUser();
       toast.success('Bem-vindo de volta!');

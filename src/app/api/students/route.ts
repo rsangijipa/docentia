@@ -2,10 +2,15 @@ import { NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 import { getSession } from '@/lib/auth-service';
-import { StudentService } from '@/services/studentService';
-import prisma from '@/lib/prisma';
 import { studentCreateSchema } from '@/lib/api-schemas';
 import { apiError, apiSuccess } from '@/lib/api-response';
+import {
+  createStudent,
+  findStudentByMatricula,
+  getClassroomById,
+  getStudentsByClassroom,
+  getTeacherStudents,
+} from '@/services/firebase/admin-data';
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -18,19 +23,19 @@ export async function GET(request: NextRequest) {
 
   try {
     if (turmaId) {
-      const turma = await prisma.classRoom.findUnique({ where: { id: turmaId } });
+      const turma = await getClassroomById(turmaId);
       if (!turma) {
         return apiError('NOT_FOUND', 'Turma nao encontrada', 404);
       }
-      if (turma.teacherId !== session.userId) {
+      if ((turma.teacherId as string) !== session.userId) {
         return apiError('FORBIDDEN', 'Sem permissao para visualizar alunos desta turma', 403);
       }
 
-      const students = await StudentService.getAllByTurma(turmaId);
+      const students = await getStudentsByClassroom(turmaId);
       return apiSuccess({ students });
     }
 
-    const students = await StudentService.getAllByTeacher(session.userId as string);
+    const students = await getTeacherStudents(session.userId as string);
     return apiSuccess({ students });
   } catch (error) {
     console.error('Error fetching students:', error);
@@ -50,21 +55,26 @@ export async function POST(request: NextRequest) {
       return apiError('INVALID_REQUEST', 'Payload invalido para criacao de aluno', 400);
     }
 
-    const turma = await prisma.classRoom.findUnique({ where: { id: parsed.data.turmaId } });
+    const turma = await getClassroomById(parsed.data.turmaId);
     if (!turma) {
       return apiError('NOT_FOUND', 'Turma nao encontrada', 404);
     }
-    if (turma.teacherId !== session.userId) {
+    if ((turma.teacherId as string) !== session.userId) {
       return apiError('FORBIDDEN', 'Sem permissao para cadastrar aluno nesta turma', 403);
     }
 
-    const newStudent = await StudentService.create(parsed.data);
-    return apiSuccess({ student: newStudent }, 201);
-  } catch (error: any) {
-    console.error('Error creating student:', error);
-    if (error?.code === 'P2002') {
+    const matriculaExists = await findStudentByMatricula(parsed.data.matricula);
+    if (matriculaExists) {
       return apiError('INVALID_REQUEST', 'Matricula ja cadastrada', 409);
     }
+
+    const newStudent = await createStudent({
+      ...parsed.data,
+      teacherId: session.userId as string,
+    });
+    return apiSuccess({ student: newStudent }, 201);
+  } catch (error) {
+    console.error('Error creating student:', error);
     return apiError('INTERNAL_ERROR', 'Erro ao criar aluno', 500);
   }
 }

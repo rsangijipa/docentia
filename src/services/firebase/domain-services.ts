@@ -46,6 +46,10 @@ export class ClassroomServiceFB {
         return await FirestoreService.delete(this.collection, id);
     }
 
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
+    }
+
     static async getById(id: string) {
         return await FirestoreService.getOne<any>(this.collection, id);
     }
@@ -72,6 +76,10 @@ export class StudentServiceFB {
 
     static async delete(id: string) {
         return await FirestoreService.delete(this.collection, id);
+    }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
     }
 }
 
@@ -101,6 +109,10 @@ export class CoursePlanServiceFB {
     static async delete(id: string) {
         return await FirestoreService.delete(this.collection, id);
     }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
+    }
 }
 
 export class LessonPlanServiceFB {
@@ -124,6 +136,10 @@ export class LessonPlanServiceFB {
 
     static async delete(id: string) {
         return await FirestoreService.delete(this.collection, id);
+    }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
     }
 
     static async getDailyAgenda(teacherId: string) {
@@ -167,6 +183,16 @@ export class CalendarEventServiceFB {
     static async delete(id: string) {
         return await FirestoreService.delete(this.collection, id);
     }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
+    }
+
+    static async getAllByTeacher(teacherId: string) {
+        return await FirestoreService.getAll<any>(this.collection, [
+            where('teacherId', '==', teacherId)
+        ]);
+    }
 }
 
 export class DiaryEntryServiceFB {
@@ -190,6 +216,10 @@ export class DiaryEntryServiceFB {
 
     static async delete(id: string) {
         return await FirestoreService.delete(this.collection, id);
+    }
+
+    static async update(id: string, data: any) {
+        return await FirestoreService.update(this.collection, id, data);
     }
 }
 

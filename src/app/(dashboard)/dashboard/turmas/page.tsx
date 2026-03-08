@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { ClassroomServiceFB } from '@/services/firebase/domain-services';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ConfirmActionDialog } from '@/components/dashboard/ConfirmActionDialog';
+
+async function readPayload(response: Response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
+  return { success: false, message: 'Resposta invalida do servidor.' };
+}
 
 export default function TurmasPage() {
   const { user } = useAuth();
@@ -42,8 +49,12 @@ export default function TurmasPage() {
     if (!user?.id) return;
     try {
       setLoading(true);
-      const data = await ClassroomServiceFB.getByTeacher(user.id);
-      setTurmas(data);
+      const response = await fetch('/api/turmas', { credentials: 'include', cache: 'no-store' });
+      const payload = await readPayload(response);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Erro ao carregar turmas');
+      }
+      setTurmas(payload.data.turmas || []);
     } catch {
       toast.error('Falha ao sincronizar turmas.');
     } finally {
@@ -52,20 +63,24 @@ export default function TurmasPage() {
   };
 
   React.useEffect(() => {
-    fetchTurmas();
+    void fetchTurmas();
   }, [user?.id]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id) return;
-
     setIsSubmitting(true);
     try {
-      await ClassroomServiceFB.create({
-        ...newTurma,
-        teacherId: user.id,
-        createdAt: new Date().toISOString(),
+      const response = await fetch('/api/turmas', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTurma),
       });
+      const payload = await readPayload(response);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Erro ao criar turma');
+      }
+
       toast.success(`Turma ${newTurma.nome} criada com sucesso.`);
       setIsCreateOpen(false);
       setNewTurma({ nome: '', serie: '', turno: 'matutino' });
@@ -82,7 +97,15 @@ export default function TurmasPage() {
 
     setDeleting(true);
     try {
-      await ClassroomServiceFB.delete(deleteTarget.id);
+      const response = await fetch(`/api/turmas/${deleteTarget.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const payload = await readPayload(response);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Erro ao excluir turma');
+      }
+
       toast.success(`Turma ${deleteTarget.nome} removida.`);
       setDeleteTarget(null);
       await fetchTurmas();
@@ -94,8 +117,8 @@ export default function TurmasPage() {
   };
 
   const filtered = turmas.filter((t) =>
-    t.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.serie.toLowerCase().includes(searchTerm.toLowerCase())
+    (t.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.serie || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -112,7 +135,7 @@ export default function TurmasPage() {
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6'>
         <div>
           <div className='flex items-center gap-2 text-primary font-black uppercase tracking-[0.2em] text-[10px] mb-1'>
-            <School className='w-4 h-4' /> Gestão de Ambientes
+            <School className='w-4 h-4' /> Gestao de Ambientes
           </div>
           <h1 className='text-4xl sm:text-5xl font-serif font-black tracking-tight text-slate-900 italic'>Minhas Turmas</h1>
         </div>
@@ -135,7 +158,7 @@ export default function TurmasPage() {
                   <Input id='nome' value={newTurma.nome} onChange={(e) => setNewTurma({ ...newTurma, nome: e.target.value })} required />
                 </div>
                 <div className='space-y-2'>
-                  <Label htmlFor='serie'>Série</Label>
+                  <Label htmlFor='serie'>Serie</Label>
                   <Input id='serie' value={newTurma.serie} onChange={(e) => setNewTurma({ ...newTurma, serie: e.target.value })} required />
                 </div>
                 <div className='space-y-2'>
@@ -216,15 +239,11 @@ export default function TurmasPage() {
 
       <ConfirmActionDialog
         open={Boolean(deleteTarget)}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
+        onOpenChange={(openState) => {
+          if (!openState) setDeleteTarget(null);
         }}
         title='Remover turma'
-        description={
-          deleteTarget
-            ? `Deseja remover a turma ${deleteTarget.nome}? Esta ação não pode ser desfeita.`
-            : ''
-        }
+        description={deleteTarget ? `Deseja remover a turma ${deleteTarget.nome}? Esta acao nao pode ser desfeita.` : ''}
         confirmLabel='Remover turma'
         loading={deleting}
         onConfirm={handleDelete}
@@ -232,4 +251,3 @@ export default function TurmasPage() {
     </div>
   );
 }
-

@@ -1,248 +1,258 @@
-'use client';
+﻿'use client';
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalIcon, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { CalendarDays, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { CalendarEventServiceFB } from '@/services/firebase/domain-services';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ConfirmActionDialog } from '@/components/dashboard/ConfirmActionDialog';
 
-const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-interface Evento {
-  id: number;
+type EventForm = {
   titulo: string;
   tipo: string;
   data: string;
-  horario?: string;
-}
-
-const eventColors: Record<string, string> = {
-  'Prova': 'bg-rose-100 text-rose-700 border-rose-200',
-  'Reunião': 'bg-blue-100 text-blue-700 border-blue-200',
-  'Feriado': 'bg-muted text-muted-foreground border-border',
-  'Atividade': 'bg-violet-100 text-violet-700 border-violet-200',
+  horario: string;
 };
 
-const initEventos: Evento[] = [
-  { id: 1, titulo: 'Prova de Matemática 6ºA', tipo: 'Prova', data: '2026-03-10', horario: '08:00' },
-  { id: 2, titulo: 'Conselho de Classe', tipo: 'Reunião', data: '2026-03-12', horario: '14:00' },
-  { id: 3, titulo: 'Feriado Nacional', tipo: 'Feriado', data: '2026-03-17' },
-];
+const initialForm: EventForm = {
+  titulo: '',
+  tipo: 'Atividade',
+  data: '',
+  horario: '',
+};
+
+function sortByDate(a: any, b: any) {
+  const da = new Date(a.data || 0).getTime();
+  const db = new Date(b.data || 0).getTime();
+  return da - db;
+}
 
 export default function CalendarioPage() {
   const { user } = useAuth();
-  const now = new Date(); // Use real current date
-  const [current, setCurrent] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
-  const [eventos, setEventos] = useState<Evento[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ titulo: '', tipo: 'Atividade', data: '', horario: '' });
+  const [eventos, setEventos] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const fetchData = async () => {
+  const [open, setOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<any | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [form, setForm] = React.useState<EventForm>(initialForm);
+
+  const [deleteTarget, setDeleteTarget] = React.useState<any | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+
+  const fetchData = React.useCallback(async () => {
     if (!user?.id) return;
     try {
       setLoading(true);
-      // In a real scenario, we might want to fetch by schoolId. 
-      // For now, let's fetch all or by a generic filter if schoolId isn't in user object yet.
-      const data = await CalendarEventServiceFB.getAllBySchool(user.schoolId || 'default-school');
-      setEventos(data);
-    } catch (err) {
-      console.error("Error fetching calendar events:", err);
+      const data = user.schoolId
+        ? await CalendarEventServiceFB.getAllBySchool(user.schoolId)
+        : await CalendarEventServiceFB.getAllByTeacher(user.id);
+      setEventos((data || []).sort(sortByDate));
+    } catch {
+      toast.error('Erro ao carregar eventos.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, user?.schoolId]);
 
   React.useEffect(() => {
-    fetchData();
-  }, [user?.id]);
+    void fetchData();
+  }, [fetchData]);
 
-  const year = current.getFullYear();
-  const month = current.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const prev = () => setCurrent(new Date(year, month - 1, 1));
-  const next = () => setCurrent(new Date(year, month + 1, 1));
-
-  const getEventsForDay = (day: number) => {
-    const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return eventos.filter(e => e.data === date);
+  const resetForm = () => {
+    setEditing(null);
+    setForm(initialForm);
   };
 
-  const handleCreate = async () => {
-    if (!form.titulo || !form.data) { toast.error('Informe o título e a data.'); return; }
+  const openCreate = () => {
+    resetForm();
+    setOpen(true);
+  };
+
+  const openEdit = (evento: any) => {
+    setEditing(evento);
+    setForm({
+      titulo: evento.titulo || evento.title || '',
+      tipo: evento.tipo || evento.type || 'Atividade',
+      data: evento.data || '',
+      horario: evento.horario || '',
+    });
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!user?.id) return;
+    if (!form.titulo || !form.data) {
+      toast.error('Preencha titulo e data.');
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      await CalendarEventServiceFB.create({
-        ...form,
-        schoolId: user?.schoolId || 'default-school',
-        teacherId: user?.id,
-        createdAt: new Date().toISOString()
-      });
-      setForm({ titulo: '', tipo: 'Atividade', data: '', horario: '' });
+      const payload = {
+        titulo: form.titulo,
+        title: form.titulo,
+        tipo: form.tipo,
+        type: form.tipo,
+        data: form.data,
+        date: form.data,
+        horario: form.horario,
+        teacherId: user.id,
+        schoolId: user.schoolId || null,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (editing?.id) {
+        await CalendarEventServiceFB.update(editing.id, payload);
+        toast.success('Evento atualizado.');
+      } else {
+        await CalendarEventServiceFB.create({
+          ...payload,
+          createdAt: new Date().toISOString(),
+        });
+        toast.success('Evento criado.');
+      }
+
       setOpen(false);
-      toast.success('Evento criado!');
-      fetchData();
-    } catch (err) {
-      toast.error('Erro ao criar evento.');
+      resetForm();
+      await fetchData();
+    } catch {
+      toast.error('Erro ao salvar evento.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const upcoming = eventos
-    .filter(e => new Date(e.data) >= now)
-    .sort((a, b) => a.data.localeCompare(b.data))
-    .slice(0, 4);
+  const handleDelete = async () => {
+    if (!deleteTarget?.id) return;
+    setDeleting(true);
+    try {
+      await CalendarEventServiceFB.delete(deleteTarget.id);
+      toast.success('Evento removido.');
+      setDeleteTarget(null);
+      await fetchData();
+    } catch {
+      toast.error('Erro ao remover evento.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className='h-[60vh] flex items-center justify-center gap-3 text-slate-500'>
+        <Loader2 className='w-6 h-6 animate-spin' />
+        Carregando calendario...
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className='space-y-6 animate-fade-in'>
+      <div className='flex flex-col sm:flex-row justify-between gap-4'>
         <div>
-          <h1 className="text-2xl font-serif font-bold text-foreground tracking-tight">Calendário Pedagógico</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Provas, reuniões, feriados e atividades do ano letivo.</p>
+          <h1 className='text-2xl font-serif font-bold text-foreground'>Calendario Escolar</h1>
+          <p className='text-sm text-muted-foreground mt-1'>Cadastro e acompanhamento real de eventos.</p>
         </div>
-        <Button onClick={() => setOpen(true)} className="bg-primary hover:bg-primary/90 gap-2 shadow-sm w-full sm:w-auto">
-          <Plus className="w-4 h-4" />
-          Novo Evento
+        <Button onClick={openCreate} className='gap-2 w-full sm:w-auto'>
+          <Plus className='w-4 h-4' /> Novo evento
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
-        <div className="lg:col-span-2 bg-card rounded-2xl border border-border/60 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
-            <button onClick={prev} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <h2 className="font-serif font-bold text-foreground">{MONTHS[month]} {year}</h2>
-            <button onClick={next} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
-          <div className="grid grid-cols-7 border-b border-border/50">
-            {DAYS.map(d => (
-              <div key={d} className="py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {d}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[70px] border-b border-r border-border/30 bg-muted/10" />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const isToday = year === now.getFullYear() && month === now.getMonth() && day === now.getDate();
-              const dayEvents = getEventsForDay(day);
-              const col = (firstDay + i) % 7;
-              return (
-                <div
-                  key={day}
-                  className={`min-h-[70px] border-b border-r border-border/30 p-1.5 ${isToday ? 'bg-primary/5' : 'hover:bg-muted/20'} ${col === 0 || col === 6 ? 'bg-muted/10' : ''} transition-colors`}
-                >
-                  <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold mb-1 ${isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-                    }`}>
-                    {day}
-                  </div>
-                  <div className="space-y-0.5">
-                    {dayEvents.slice(0, 2).map(ev => (
-                      <div key={ev.id} className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate border ${eventColors[ev.tipo] ?? 'bg-muted text-muted-foreground border-border'}`}>
-                        {ev.titulo}
-                      </div>
-                    ))}
-                    {dayEvents.length > 2 && (
-                      <div className="text-[10px] text-muted-foreground px-1">+{dayEvents.length - 2} mais</div>
-                    )}
-                  </div>
+      {eventos.length === 0 ? (
+        <Card className='rounded-2xl border-dashed'>
+          <CardContent className='py-14 text-center text-slate-500'>Nenhum evento cadastrado.</CardContent>
+        </Card>
+      ) : (
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          {eventos.map((evento) => (
+            <Card key={evento.id} className='rounded-2xl'>
+              <CardHeader className='pb-2'>
+                <CardTitle className='text-base flex items-center gap-2'>
+                  <CalendarDays className='w-4 h-4' /> {evento.titulo || evento.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='space-y-3'>
+                <p className='text-sm text-slate-600'>Tipo: {evento.tipo || evento.type || 'Atividade'}</p>
+                <p className='text-sm text-slate-600'>Data: {evento.data || evento.date || '-'}</p>
+                {evento.horario ? <p className='text-sm text-slate-600'>Horario: {evento.horario}</p> : null}
+                <div className='flex gap-2 pt-2'>
+                  <Button variant='outline' size='sm' onClick={() => openEdit(evento)}>Editar</Button>
+                  <Button variant='outline' size='sm' className='text-destructive' onClick={() => setDeleteTarget(evento)}>
+                    <Trash2 className='w-3.5 h-3.5 mr-1' /> Excluir
+                  </Button>
                 </div>
-              );
-            })}
-          </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
+      )}
 
-        {/* Upcoming Events */}
-        <div className="bg-card rounded-2xl border border-border/60 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-border/50">
-            <h3 className="font-serif font-semibold text-foreground">Próximos Eventos</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">A partir de hoje</p>
-          </div>
-          <div className="divide-y divide-border/40 p-2">
-            {upcoming.length > 0 ? upcoming.map(ev => {
-              const d = new Date(ev.data + 'T00:00:00');
-              return (
-                <div key={ev.id} className="flex items-start gap-3 px-3 py-3 rounded-xl hover:bg-muted/30 transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">{MONTHS[d.getMonth()].slice(0, 3)}</span>
-                    <span className="text-base font-bold text-foreground leading-none">{d.getDate()}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-foreground text-sm truncate">{ev.titulo}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold border ${eventColors[ev.tipo] ?? 'bg-muted text-muted-foreground border-border'}`}>{ev.tipo}</span>
-                      {ev.horario && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                          <Clock className="w-2.5 h-2.5" /> {ev.horario}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="px-3 py-12 text-center text-sm text-muted-foreground">
-                Nenhum evento próximo
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Create Event Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className='sm:max-w-[460px]'>
           <DialogHeader>
-            <DialogTitle>Novo Evento</DialogTitle>
-            <DialogDescription>Adicione provas, reuniões, feriados ou atividades.</DialogDescription>
+            <DialogTitle>{editing ? 'Editar evento' : 'Novo evento'}</DialogTitle>
+            <DialogDescription>Preencha os campos obrigatorios.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-1.5">
-              <Label>Título <span className="text-destructive">*</span></Label>
-              <Input placeholder="Ex: Prova de Matemática" value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} />
+          <div className='grid gap-4 py-4'>
+            <div className='grid gap-1.5'>
+              <Label>Titulo</Label>
+              <Input value={form.titulo} onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
+            <div className='grid grid-cols-2 gap-3'>
+              <div className='grid gap-1.5'>
                 <Label>Tipo</Label>
                 <select
-                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  className='h-10 rounded-md border border-input bg-background px-3 text-sm'
                   value={form.tipo}
-                  onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}
+                  onChange={(e) => setForm((p) => ({ ...p, tipo: e.target.value }))}
                 >
-                  {['Prova', 'Reunião', 'Feriado', 'Atividade'].map(t => <option key={t}>{t}</option>)}
+                  {['Atividade', 'Prova', 'Reuniao', 'Feriado'].map((tipo) => (
+                    <option key={tipo} value={tipo}>{tipo}</option>
+                  ))}
                 </select>
               </div>
-              <div className="grid gap-1.5">
-                <Label>Horário</Label>
-                <Input type="time" value={form.horario} onChange={e => setForm(p => ({ ...p, horario: e.target.value }))} />
+              <div className='grid gap-1.5'>
+                <Label>Horario</Label>
+                <Input type='time' value={form.horario} onChange={(e) => setForm((p) => ({ ...p, horario: e.target.value }))} />
               </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label>Data <span className="text-destructive">*</span></Label>
-              <Input type="date" value={form.data} onChange={e => setForm(p => ({ ...p, data: e.target.value }))} />
+            <div className='grid gap-1.5'>
+              <Label>Data</Label>
+              <Input type='date' value={form.data} onChange={(e) => setForm((p) => ({ ...p, data: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} className="bg-primary hover:bg-primary/90">Criar Evento</Button>
+            <Button variant='outline' onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSubmit} disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmActionDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(openState) => {
+          if (!openState) setDeleteTarget(null);
+        }}
+        title='Excluir evento'
+        description={deleteTarget ? `Deseja excluir "${deleteTarget.titulo || deleteTarget.title}"?` : ''}
+        confirmLabel='Excluir'
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

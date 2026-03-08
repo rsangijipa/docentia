@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { getSession } from '@/lib/auth-service';
-import { DashboardService } from '@/services/dashboardService';
 import { apiError, apiSuccess } from '@/lib/api-response';
+import { getDashboardStats, getTeacherAgendaForToday } from '@/services/firebase/admin-data';
 
 export async function GET() {
     const session = await getSession();
@@ -12,8 +12,8 @@ export async function GET() {
     }
 
     try {
-        const stats = await DashboardService.getStats(session.userId);
-        const agenda = await DashboardService.getDailyAgenda(session.userId);
+        const stats = await getDashboardStats(session.userId as string);
+        const agenda = await getTeacherAgendaForToday(session.userId as string);
 
         return apiSuccess({
             stats,
