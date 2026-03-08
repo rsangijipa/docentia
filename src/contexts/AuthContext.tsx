@@ -3,14 +3,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
-import {
-  registerWithEmail,
-  loginWithEmail,
-  logoutUser
-} from '@/lib/firebase/auth';
-import { UserServiceFB } from '@/services/firebase/domain-services';
 
 export interface User {
   id: string;
@@ -43,57 +35,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const syncUserFromFirestore = async (fbUser: FirebaseUser) => {
+  const refreshUser = async () => {
     try {
-      const userData = await UserServiceFB.getByEmail(fbUser.email!);
-      setUser({
-        id: fbUser.uid,
-        email: fbUser.email,
-        name: fbUser.displayName || 'Usuário',
-        role: userData?.role || 'TEACHER',
-        schoolId: userData?.schoolId || null
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
       });
-    } catch (error) {
-      console.error("Error syncing user data:", error);
+
+      if (!response.ok) {
+        setUser(null);
+        return;
+      }
+
+      const data = await response.json();
+      const sessionUser = data?.user;
+
+      if (!sessionUser) {
+        setUser(null);
+        return;
+      }
+
       setUser({
-        id: fbUser.uid,
-        email: fbUser.email,
-        name: fbUser.displayName || 'Usuário',
-        role: 'TEACHER',
-        schoolId: null
+        id: sessionUser.id,
+        email: sessionUser.email ?? null,
+        name: sessionUser.name ?? 'Usuario',
+        role: sessionUser.role ?? 'TEACHER',
+        schoolId: sessionUser.profile?.schoolId ?? null,
       });
+    } catch {
+      setUser(null);
     }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        await syncUserFromFirestore(fbUser);
-      } else {
-        setUser(null);
-      }
+    const checkSession = async () => {
+      await refreshUser();
       setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    checkSession();
   }, []);
-
-  const refreshUser = async () => {
-    if (auth.currentUser) {
-      await syncUserFromFirestore(auth.currentUser);
-    }
-  };
 
   const signIn = async (email: string, pass: string) => {
     setLoading(true);
     try {
-      const fbUser = await loginWithEmail(email, pass);
-      await syncUserFromFirestore(fbUser);
-      toast.success(`Bem-vindo de volta!`);
-      router.push('/dashboard');
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'Credenciais invalidas');
+      }
+
+      await refreshUser();
+      toast.success('Bem-vindo de volta!');
+      router.replace('/dashboard');
+      router.refresh();
     } catch (error: any) {
-      toast.error('Erro ao realizar login: Credenciais inválidas');
-      throw error;
+      const message = error?.message || 'Erro ao realizar login: credenciais invalidas';
+      toast.error(message);
+      throw new Error(message);
     } finally {
       setLoading(false);
     }
@@ -102,24 +108,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async ({ name, email, pass, role, schoolId }: { name: string, email: string, pass: string, role?: string, schoolId?: string }) => {
     setLoading(true);
     try {
-      const fbUser = await registerWithEmail(name, email, pass);
-
-      // Cria o registro no Firestore
-      await UserServiceFB.updateProfile(fbUser.uid, {
-        id: fbUser.uid,
-        email,
-        name,
-        role: role || 'TEACHER',
-        schoolId: schoolId || null,
-        createdAt: new Date()
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          password: pass,
+          role,
+          schoolId,
+        }),
       });
 
-      await syncUserFromFirestore(fbUser);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'Erro ao criar conta');
+      }
+
+      await refreshUser();
       toast.success(`Conta criada com sucesso! Bem-vindo, ${name}.`);
-      router.push('/dashboard');
+      router.replace('/dashboard');
+      router.refresh();
     } catch (error: any) {
-      toast.error('Erro ao realizar cadastro');
-      throw error;
+      const message = error?.message || 'Erro ao realizar cadastro';
+      toast.error(message);
+      throw new Error(message);
     } finally {
       setLoading(false);
     }
@@ -128,13 +142,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     setLoading(true);
     try {
-      await logoutUser();
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
       setUser(null);
-      router.push('/login');
-      toast.success('Sessão encerrada.');
+      router.replace('/login');
+      router.refresh();
+      toast.success('Sessao encerrada.');
     } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Erro ao encerrar sessão.");
+      console.error('Logout error:', error);
+      toast.error('Erro ao encerrar sessao.');
     } finally {
       setLoading(false);
     }

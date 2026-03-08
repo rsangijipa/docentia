@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Mail, Lock, LogIn, ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -36,9 +35,7 @@ export default function LoginPage() {
     try {
       setIsSubmitting(true);
       await signIn(data.email, data.password);
-      toast.success('Login realizado com sucesso!');
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao fazer login');
+    } catch {
     } finally {
       setIsSubmitting(false);
     }

@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDocPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userExists() {
+      return isSignedIn() && exists(userDocPath());
+    }
+
+    function userData() {
+      return get(userDocPath()).data;
+    }
+
+    function userSchoolId() {
+      return userExists() ? userData().schoolId : null;
+    }
+
+    function isAdmin() {
+      return userExists() && userData().role in ['ADMIN', 'SCHOOL_ADMIN', 'COORDINATOR'];
+    }
+
+    function isOwnerByTeacher() {
+      return isSignedIn() && resource.data.teacherId == request.auth.uid;
+    }
+
+    function isCreateOwnerByTeacher() {
+      return isSignedIn() && request.resource.data.teacherId == request.auth.uid;
+    }
+
+    function sameSchoolByResource() {
+      return userExists() && resource.data.schoolId == userSchoolId();
+    }
+
+    function sameSchoolByRequest() {
+      return userExists() && request.resource.data.schoolId == userSchoolId();
+    }
+
+    match /users/{userId} {
+      allow get, list: if isSignedIn() && (
+        userId == request.auth.uid ||
+        resource.data.email == request.auth.token.email ||
+        (isAdmin() && resource.data.schoolId == userSchoolId())
+      );
+
+      allow create: if isSignedIn() &&
+        userId == request.auth.uid &&
+        request.resource.data.id == request.auth.uid &&
+        request.resource.data.email == request.auth.token.email;
+
+      allow update: if isSignedIn() && (
+        (
+          userId == request.auth.uid &&
+          request.resource.data.id == resource.data.id &&
+          request.resource.data.email == resource.data.email
+        ) ||
+        (isAdmin() && resource.data.schoolId == userSchoolId())
+      );
+
+      allow delete: if false;
+    }
+
+    match /classrooms/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /students/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /coursePlans/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /lessonPlans/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /diaryEntries/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /calendarEvents/{docId} {
+      allow read: if (isSignedIn() && resource.data.teacherId == request.auth.uid) || (isAdmin() && sameSchoolByResource());
+      allow create: if (isSignedIn() && request.resource.data.teacherId == request.auth.uid) || (isAdmin() && sameSchoolByRequest());
+      allow update, delete: if (isSignedIn() && resource.data.teacherId == request.auth.uid) || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /schoolYears/{docId} {
+      allow read: if isSignedIn() && sameSchoolByResource();
+      allow write: if isAdmin() && sameSchoolByRequest();
+    }
+
+    match /schools/{docId} {
+      allow read: if isSignedIn() && (docId == userSchoolId() || isAdmin());
+      allow write: if isAdmin() && docId == userSchoolId();
+    }
+
+    match /notifications/{docId} {
+      allow read, update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
