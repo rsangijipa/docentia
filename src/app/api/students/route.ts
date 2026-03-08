@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { getSession } from "@/lib/auth-service";
 import { StudentService } from "@/services/studentService";
 import prisma from "@/lib/prisma";

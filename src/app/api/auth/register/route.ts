@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { UserService } from "@/services/userService";
 import { login as setSessionCookie } from "@/lib/auth-service";
 
