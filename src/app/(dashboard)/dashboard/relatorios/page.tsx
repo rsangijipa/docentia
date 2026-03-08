@@ -132,8 +132,8 @@ export default function RelatoriosPage() {
                                             <FileJson className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h4 className="text-sm font-bold">{template.nome}</h4>
-                                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{template.tipo}</p>
+                                            <h4 className="text-sm font-bold">{template.name}</h4>
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{template.type}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ export default function RelatoriosPage() {
                                             size="sm"
                                             className="h-9 px-3 gap-2 border-border/60 hover:border-primary/30"
                                             disabled={generating === template.id}
-                                            onClick={() => handleGenerate(template.id, template.nome)}
+                                            onClick={() => handleGenerate(template.id, template.name)}
                                         >
                                             {generating === template.id ? (
                                                 <Clock className="w-4 h-4 animate-spin" />

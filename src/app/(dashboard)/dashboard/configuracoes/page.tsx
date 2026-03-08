@@ -17,11 +17,19 @@ const tabs = [
 ];
 
 export default function ConfiguracoesPage() {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     const [activeTab, setActiveTab] = useState('perfil');
-    const [nome, setNome] = useState(user?.displayName ?? '');
+    const [nome, setNome] = useState(user?.name ?? '');
     const [escola, setEscola] = useState('');
     const [disciplina, setDisciplina] = useState('');
+
+    // Sincronizar estado quando o usuário carregar
+    useState(() => {
+        if (user?.name) setNome(user.name);
+    });
+
+    if (loading) return null;
+    if (!user) return null;
 
     const handleSave = () => {
         toast.success('Configurações salvas com sucesso!');
@@ -42,8 +50,8 @@ export default function ConfiguracoesPage() {
                             key={t.id}
                             onClick={() => setActiveTab(t.id)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === t.id
-                                    ? 'bg-card text-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-card text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             <Icon className="w-4 h-4" />
@@ -63,10 +71,10 @@ export default function ConfiguracoesPage() {
                         {/* Avatar */}
                         <div className="flex items-center gap-5">
                             <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center text-primary font-serif font-bold text-2xl">
-                                {user?.displayName?.charAt(0).toUpperCase() ?? 'P'}
+                                {user.name?.charAt(0).toUpperCase() ?? 'P'}
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-foreground">{user?.displayName ?? 'Professor'}</p>
+                                <p className="text-sm font-semibold text-foreground">{user.name ?? 'Professor'}</p>
                                 <p className="text-xs text-muted-foreground">{user?.email}</p>
                                 <Button variant="outline" size="sm" className="mt-2 text-xs border-border/60 text-muted-foreground h-7">
                                     Alterar foto
