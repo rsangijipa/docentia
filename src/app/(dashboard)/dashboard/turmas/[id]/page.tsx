@@ -3,97 +3,155 @@
 import * as React from 'react';
 import { useParams } from 'next/navigation';
 import {
-    Loader2,
-    ArrowLeft,
-    Settings,
-    Users,
-    BookOpen,
-    Calendar,
-    Sparkles,
-    Zap,
-    TrendingUp,
-    ChevronRight
+  Loader2,
+  ArrowLeft,
+  Users,
+  BookOpen,
+  Calendar,
+  ChevronRight,
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
+type Turma = {
+  id: string;
+  nome: string;
+  serie: string;
+  turno: string;
+  subject?: { name?: string };
+  alunos?: Array<{ id: string; nome: string; matricula: string }>;
+};
+
 export default function TurmaDetailPage() {
-    const params = useParams();
-    const id = params.id as string;
-    const [turma, setTurma] = React.useState<any>(null);
-    const [loading, setLoading] = React.useState(true);
+  const params = useParams();
+  const id = params.id as string;
 
-    React.useEffect(() => {
-        const fetchTurma = async () => {
-            try {
-                const res = await fetch(`/api/turmas/${id}`);
-                // Wait, I haven't created the [id] API route yet!
-                // I'll use the service in a Server Action or just create the API route.
-                // For now, I'll just simulate or create the route.
-            } catch (err) { } finally {
-                setLoading(false);
-            }
-        };
-        fetchTurma();
-    }, [id]);
+  const [turma, setTurma] = React.useState<Turma | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    const fetchTurma = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/turmas/${id}`, { cache: 'no-store' });
+        const payload = await res.json();
+
+        if (!res.ok || !payload?.success) {
+          throw new Error(payload?.message || 'Nao foi possivel carregar a turma.');
+        }
+
+        setTurma(payload.data.turma);
+      } catch (err: any) {
+        setError(err?.message || 'Erro inesperado ao carregar turma.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) fetchTurma();
+  }, [id]);
+
+  if (loading) {
     return (
-        <div className="space-y-8 animate-fade-in pb-24">
-            <div className="flex items-center gap-4">
-                <Link href="/dashboard/turmas">
-                    <Button variant="ghost" size="icon" className="rounded-full bg-white shadow-sm border border-slate-100">
-                        <ArrowLeft className="w-5 h-5 text-slate-400" />
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-serif font-black italic text-slate-900 tracking-tight">Gestão de Turma</h1>
-                    <p className="text-slate-500 font-medium text-sm italic">Ambiente Pedagógico Integrado Maestro</p>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Card className="lg:col-span-2 rounded-[2.5rem] border-slate-200 bg-white overflow-hidden shadow-sm">
-                    <CardContent className="p-12 text-center space-y-6">
-                        <div className="w-24 h-24 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 text-slate-200 border border-slate-100">
-                            <Sparkles className="w-12 h-12" />
-                        </div>
-                        <h2 className="text-4xl font-serif font-black italic text-slate-900 tracking-tighter">Módulo em Integração</h2>
-                        <p className="text-slate-500 max-w-md mx-auto font-medium italic">
-                            Estamos integrando este painel detalhado ao seu banco de dados Maestro. Em breve você terá visão 360º de cada aluno, frequência e diários.
-                        </p>
-                        <div className="pt-8">
-                            <div className="inline-flex items-center gap-3 px-6 h-12 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest cursor-default shadow-xl shadow-slate-200">
-                                <Zap className="w-4 h-4 text-primary" /> Coming Soon: Maestro Analytics
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <div className="space-y-8">
-                    <Card className="rounded-[2.5rem] border-none bg-[#0f172a] text-white p-8 shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
-                        <h3 className="text-xl font-serif font-black italic mb-6">Atalhos Rápidos</h3>
-                        <div className="space-y-4">
-                            {[
-                                { label: 'Relatório de Turma', icon: TrendingUp },
-                                { label: 'Lista de Chamada', icon: Users },
-                                { label: 'Plano de Ensino', icon: BookOpen },
-                                { label: 'Calendário Local', icon: Calendar },
-                            ].map(item => (
-                                <Button key={item.label} variant="ghost" className="w-full justify-between h-14 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border-none text-[10px] font-black uppercase tracking-widest px-6 transition-all">
-                                    <span className="flex items-center gap-3">
-                                        <item.icon className="w-4 h-4 text-primary" />
-                                        {item.label}
-                                    </span>
-                                    <ChevronRight className="w-4 h-4 opacity-30" />
-                                </Button>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
-            </div>
-        </div>
+      <div className='h-[60vh] flex flex-col items-center justify-center gap-4'>
+        <Loader2 className='w-10 h-10 text-primary animate-spin' />
+        <p className='text-slate-500 font-medium'>Carregando dados da turma...</p>
+      </div>
     );
+  }
+
+  if (error || !turma) {
+    return (
+      <div className='space-y-8 animate-fade-in pb-24'>
+        <div className='flex items-center gap-4'>
+          <Link href='/dashboard/turmas'>
+            <Button variant='ghost' size='icon' className='rounded-full bg-white shadow-sm border border-slate-100'>
+              <ArrowLeft className='w-5 h-5 text-slate-400' />
+            </Button>
+          </Link>
+          <h1 className='text-3xl font-serif font-black italic text-slate-900 tracking-tight'>Detalhe da Turma</h1>
+        </div>
+
+        <Card className='rounded-[2rem] border-rose-200 bg-rose-50/40'>
+          <CardContent className='p-8 flex items-start gap-4'>
+            <AlertTriangle className='w-6 h-6 text-rose-600 mt-1' />
+            <div>
+              <p className='font-bold text-rose-800'>Falha ao carregar turma</p>
+              <p className='text-rose-700 text-sm mt-1'>{error || 'Turma nao encontrada.'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className='space-y-8 animate-fade-in pb-24'>
+      <div className='flex items-center gap-4'>
+        <Link href='/dashboard/turmas'>
+          <Button variant='ghost' size='icon' className='rounded-full bg-white shadow-sm border border-slate-100'>
+            <ArrowLeft className='w-5 h-5 text-slate-400' />
+          </Button>
+        </Link>
+        <div>
+          <h1 className='text-3xl font-serif font-black italic text-slate-900 tracking-tight'>{turma.nome}</h1>
+          <p className='text-slate-500 font-medium text-sm italic'>Gestao da turma e alunos vinculados</p>
+        </div>
+      </div>
+
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
+        <Card className='rounded-[2.5rem] border-slate-200/60 bg-white shadow-sm'>
+          <CardContent className='p-8 space-y-4'>
+            <div className='flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400'>
+              <BookOpen className='w-4 h-4' /> Dados da turma
+            </div>
+            <div className='space-y-2'>
+              <p className='text-sm text-slate-500'>Serie</p>
+              <p className='font-bold text-slate-900'>{turma.serie}</p>
+            </div>
+            <div className='space-y-2'>
+              <p className='text-sm text-slate-500'>Turno</p>
+              <Badge className='bg-primary/10 text-primary border-none font-black text-[9px] uppercase'>{turma.turno}</Badge>
+            </div>
+            <div className='space-y-2'>
+              <p className='text-sm text-slate-500'>Disciplina</p>
+              <p className='font-bold text-slate-900'>{turma.subject?.name || 'Nao informada'}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className='lg:col-span-2 rounded-[2.5rem] border-slate-200/60 bg-white shadow-sm'>
+          <CardHeader className='p-8 border-b border-slate-100'>
+            <CardTitle className='text-2xl font-serif font-black italic text-slate-900 flex items-center gap-2'>
+              <Users className='w-6 h-6 text-primary' />
+              Alunos da turma
+            </CardTitle>
+          </CardHeader>
+          <CardContent className='p-8'>
+            {turma.alunos && turma.alunos.length > 0 ? (
+              <div className='space-y-3'>
+                {turma.alunos.map((aluno) => (
+                  <div key={aluno.id} className='p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between'>
+                    <div>
+                      <p className='font-bold text-slate-800'>{aluno.nome}</p>
+                      <p className='text-[11px] text-slate-500 font-medium'>Matricula: {aluno.matricula}</p>
+                    </div>
+                    <ChevronRight className='w-4 h-4 text-slate-300' />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className='text-center py-16'>
+                <p className='text-slate-500 font-medium'>Nenhum aluno cadastrado nesta turma.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

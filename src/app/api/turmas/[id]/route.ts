@@ -15,6 +15,25 @@ async function getOwnedTurma(id: string, teacherId: string) {
   return { turma, error: null };
 }
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getSession();
+  if (!session?.userId) {
+    return apiError('UNAUTHORIZED', 'Nao autorizado', 401);
+  }
+
+  try {
+    const ownership = await getOwnedTurma(params.id, session.userId as string);
+    if (ownership.error) return ownership.error;
+    return apiSuccess({ turma: ownership.turma });
+  } catch (error) {
+    console.error('Error fetching turma:', error);
+    return apiError('INTERNAL_ERROR', 'Erro ao buscar turma', 500);
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
