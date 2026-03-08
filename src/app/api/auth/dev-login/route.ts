@@ -2,9 +2,10 @@ import { NextRequest } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { z } from "zod";
-import { apiError, apiSuccess } from "@/lib/api-response";
+import { apiError, apiSuccess, withRequestId } from "@/lib/api-response";
 import { login as setSessionCookie } from "@/lib/auth-service";
 import { hitRateLimit } from "@/lib/rate-limit";
+import { getRequestId, logError } from "@/lib/request-trace";
 
 const devLoginSchema = z.object({
   email: z.string().trim().email(),
@@ -18,16 +19,26 @@ function getRequesterIp(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = getRequestId(req.headers);
   try {
+    const enabled = process.env.DEV_LOGIN_ENABLED === "true";
+    const isDev = process.env.NODE_ENV === "development";
+    if (!enabled || !isDev) {
+      return withRequestId(
+        apiError("FORBIDDEN", "Dev login is disabled for this environment.", 403),
+        requestId
+      );
+    }
+
     const ip = getRequesterIp(req);
     const rl = hitRateLimit(`auth-dev-login:${ip}`, 20, 60_000);
     if (rl.limited) {
-      return apiError("RATE_LIMITED", "Too many requests. Try again shortly.", 429);
+      return withRequestId(apiError("RATE_LIMITED", "Too many requests. Try again shortly.", 429), requestId);
     }
 
     const parsed = devLoginSchema.safeParse(await req.json());
     if (!parsed.success) {
-      return apiError("INVALID_REQUEST", "Invalid request payload.", 400);
+      return withRequestId(apiError("INVALID_REQUEST", "Invalid request payload.", 400), requestId);
     }
 
     const testEmail = process.env.TEST_LOGIN_EMAIL || "admin@admin.com";
@@ -40,12 +51,12 @@ export async function POST(req: NextRequest) {
     const expectedEmail = testEmail.toLowerCase();
 
     if (email !== expectedEmail || parsed.data.pass !== testPass) {
-      return apiError("UNAUTHORIZED", "Invalid credentials.", 401);
+      return withRequestId(apiError("UNAUTHORIZED", "Invalid credentials.", 401), requestId);
     }
 
     await setSessionCookie(testUserId, testRole, undefined);
 
-    return apiSuccess({
+    return withRequestId(apiSuccess({
       user: {
         id: testUserId,
         email: testEmail,
@@ -53,9 +64,9 @@ export async function POST(req: NextRequest) {
         role: testRole,
         profile: { schoolId: null },
       },
-    });
+    }), requestId);
   } catch (error) {
-    console.error("Dev login error:", error);
-    return apiError("INTERNAL_ERROR", "Failed to create test session.", 500);
+    logError(requestId, "Dev login error", { error: String(error) });
+    return withRequestId(apiError("INTERNAL_ERROR", "Failed to create test session.", 500), requestId);
   }
 }

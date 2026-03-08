@@ -18,8 +18,15 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { StudentServiceFB, ClassroomServiceFB } from '@/services/firebase/domain-services';
 import { ConfirmActionDialog } from '@/components/dashboard/ConfirmActionDialog';
+
+async function readPayload(response: Response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
+  return { success: false, message: 'Resposta invalida do servidor.' };
+}
 
 export default function AlunosPage() {
   const { user } = useAuth();
@@ -45,26 +52,33 @@ export default function AlunosPage() {
     if (!user?.id) return;
     try {
       setLoading(true);
-      const [alunosData, turmasData] = await Promise.all([
-        StudentServiceFB.getByTeacher(user.id),
-        ClassroomServiceFB.getByTeacher(user.id),
+      const [alunosResponse, turmasResponse] = await Promise.all([
+        fetch('/api/students', { credentials: 'include', cache: 'no-store' }),
+        fetch('/api/turmas', { credentials: 'include', cache: 'no-store' }),
       ]);
-      setAlunos(alunosData);
-      setTurmas(turmasData);
-    } catch {
-      toast.error('Erro ao carregar alunos.');
+      const [alunosPayload, turmasPayload] = await Promise.all([
+        readPayload(alunosResponse),
+        readPayload(turmasResponse),
+      ]);
+
+      if (!alunosResponse.ok || !alunosPayload?.success) throw new Error(alunosPayload?.message || 'Erro ao carregar alunos');
+      if (!turmasResponse.ok || !turmasPayload?.success) throw new Error(turmasPayload?.message || 'Erro ao carregar turmas');
+
+      setAlunos(alunosPayload.data.students || []);
+      setTurmas(turmasPayload.data.turmas || []);
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao carregar alunos.');
     } finally {
       setLoading(false);
     }
   };
 
   React.useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [user?.id]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id) return;
     if (!newStudent.turmaId) {
       toast.error('Selecione uma turma.');
       return;
@@ -72,13 +86,17 @@ export default function AlunosPage() {
 
     setIsSubmitting(true);
     try {
-      await StudentServiceFB.create({
-        ...newStudent,
-        teacherId: user.id,
-        frequenciaGeral: 100,
-        desempenhoGeral: 0,
-        createdAt: new Date().toISOString(),
+      const response = await fetch('/api/students', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStudent),
       });
+      const payload = await readPayload(response);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Erro ao criar aluno');
+      }
+
       toast.success(`${newStudent.nome} cadastrado com sucesso.`);
       setIsCreateOpen(false);
       setNewStudent({ nome: '', matricula: '', turmaId: '', status: 'ativo', observacoes: '' });
@@ -94,7 +112,15 @@ export default function AlunosPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await StudentServiceFB.delete(deleteTarget.id);
+      const response = await fetch(`/api/students/${deleteTarget.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const payload = await readPayload(response);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Erro ao excluir aluno');
+      }
+
       toast.success(`${deleteTarget.nome} removido com sucesso.`);
       setDeleteTarget(null);
       await fetchData();
@@ -106,8 +132,8 @@ export default function AlunosPage() {
   };
 
   const filteredAlunos = alunos.filter((aluno) =>
-    aluno.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    aluno.matricula.includes(searchTerm)
+    (aluno.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (aluno.matricula || '').includes(searchTerm)
   );
 
   if (loading) {
@@ -124,7 +150,7 @@ export default function AlunosPage() {
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6'>
         <div>
           <div className='flex items-center gap-2 text-indigo-500 font-black uppercase tracking-[0.2em] text-[10px] mb-1'>
-            <Users className='w-4 h-4' /> Gestão Pedagógica
+            <Users className='w-4 h-4' /> Gestao Pedagogica
           </div>
           <h1 className='text-4xl sm:text-5xl font-serif font-black italic text-slate-900'>Alunos</h1>
         </div>
@@ -148,7 +174,7 @@ export default function AlunosPage() {
                   <Input id='nome' value={newStudent.nome} onChange={(e) => setNewStudent({ ...newStudent, nome: e.target.value })} required />
                 </div>
                 <div className='space-y-2'>
-                  <Label htmlFor='matricula'>Matrícula</Label>
+                  <Label htmlFor='matricula'>Matricula</Label>
                   <Input id='matricula' value={newStudent.matricula} onChange={(e) => setNewStudent({ ...newStudent, matricula: e.target.value })} required />
                 </div>
                 <div className='space-y-2'>
@@ -201,7 +227,7 @@ export default function AlunosPage() {
                     <p className='font-bold text-slate-800'>{aluno.nome}</p>
                     <div className='flex items-center gap-2 mt-1'>
                       <Badge variant='outline' className='text-[10px]'>{turma?.nome || 'Sem turma'}</Badge>
-                      <span className='text-[11px] text-slate-500'>Matrícula: {aluno.matricula}</span>
+                      <span className='text-[11px] text-slate-500'>Matricula: {aluno.matricula}</span>
                     </div>
                   </div>
                   <Button
@@ -223,15 +249,11 @@ export default function AlunosPage() {
 
       <ConfirmActionDialog
         open={Boolean(deleteTarget)}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
+        onOpenChange={(openState) => {
+          if (!openState) setDeleteTarget(null);
         }}
         title='Remover aluno'
-        description={
-          deleteTarget
-            ? `Deseja remover ${deleteTarget.nome}? Esta ação não pode ser desfeita.`
-            : ''
-        }
+        description={deleteTarget ? `Deseja remover ${deleteTarget.nome}? Esta acao nao pode ser desfeita.` : ''}
         confirmLabel='Remover aluno'
         loading={deleting}
         onConfirm={handleDelete}
@@ -239,4 +261,3 @@ export default function AlunosPage() {
     </div>
   );
 }
-

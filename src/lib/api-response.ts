@@ -35,3 +35,8 @@ export function apiError(
     { status }
   );
 }
+
+export function withRequestId<T extends NextResponse>(response: T, requestId: string) {
+  response.headers.set("x-request-id", requestId);
+  return response;
+}

@@ -3,16 +3,17 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 import { getSession } from '@/lib/auth-service';
 import { studentPatchSchema } from '@/lib/api-schemas';
-import { apiError, apiSuccess } from '@/lib/api-response';
+import { apiError, apiSuccess, withRequestId } from '@/lib/api-response';
 import {
   deleteStudent,
   getClassroomById,
   getStudentById,
   updateStudent,
 } from '@/services/firebase/admin-data';
+import { getRequestId, logError } from '@/lib/request-trace';
 
 async function getOwnedStudent(id: string, teacherId: string) {
-  const student = await getStudentById(id);
+  const student = (await getStudentById(id)) as Record<string, unknown> | null;
   if (!student) {
     return { student: null, error: apiError('NOT_FOUND', 'Aluno nao encontrado', 404) };
   }
@@ -20,7 +21,7 @@ async function getOwnedStudent(id: string, teacherId: string) {
   if (!turmaId) {
     return { student: null, error: apiError('FORBIDDEN', 'Aluno sem turma valida', 403) };
   }
-  const turma = await getClassroomById(turmaId);
+  const turma = (await getClassroomById(turmaId)) as Record<string, unknown> | null;
   if (!turma || (turma.teacherId as string) !== teacherId) {
     return { student: null, error: apiError('FORBIDDEN', 'Sem permissao para este aluno', 403) };
   }
@@ -31,9 +32,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const requestId = getRequestId(request.headers);
   const session = await getSession();
   if (!session?.userId) {
-    return apiError('UNAUTHORIZED', 'Nao autorizado', 401);
+    return withRequestId(apiError('UNAUTHORIZED', 'Nao autorizado', 401), requestId);
   }
 
   try {
@@ -41,10 +43,10 @@ export async function DELETE(
     if (ownership.error) return ownership.error;
 
     await deleteStudent(params.id);
-    return apiSuccess({ deleted: true });
+    return withRequestId(apiSuccess({ deleted: true }), requestId);
   } catch (error) {
-    console.error('Error deleting student:', error);
-    return apiError('INTERNAL_ERROR', 'Erro ao excluir aluno', 500);
+    logError(requestId, 'Error deleting student', { error: String(error), studentId: params.id });
+    return withRequestId(apiError('INTERNAL_ERROR', 'Erro ao excluir aluno', 500), requestId);
   }
 }
 
@@ -52,9 +54,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const requestId = getRequestId(request.headers);
   const session = await getSession();
   if (!session?.userId) {
-    return apiError('UNAUTHORIZED', 'Nao autorizado', 401);
+    return withRequestId(apiError('UNAUTHORIZED', 'Nao autorizado', 401), requestId);
   }
 
   try {
@@ -63,13 +66,13 @@ export async function PATCH(
 
     const parsed = studentPatchSchema.safeParse(await request.json());
     if (!parsed.success) {
-      return apiError('INVALID_REQUEST', 'Payload invalido para atualizacao de aluno', 400);
+      return withRequestId(apiError('INVALID_REQUEST', 'Payload invalido para atualizacao de aluno', 400), requestId);
     }
 
     const updated = await updateStudent(params.id, parsed.data);
-    return apiSuccess({ student: updated });
+    return withRequestId(apiSuccess({ student: updated }), requestId);
   } catch (error) {
-    console.error('Error updating student:', error);
-    return apiError('INTERNAL_ERROR', 'Erro ao atualizar aluno', 500);
+    logError(requestId, 'Error updating student', { error: String(error), studentId: params.id });
+    return withRequestId(apiError('INTERNAL_ERROR', 'Erro ao atualizar aluno', 500), requestId);
   }
 }

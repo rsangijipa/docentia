@@ -2,10 +2,11 @@ import { NextRequest } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { authSessionSchema } from "@/lib/api-schemas";
-import { apiError, apiSuccess } from "@/lib/api-response";
+import { apiError, apiSuccess, withRequestId } from "@/lib/api-response";
 import { getFirebaseAdminAuth, getFirebaseAdminDb } from "@/lib/firebase-admin";
 import { login as setSessionCookie } from "@/lib/auth-service";
 import { hitRateLimit } from "@/lib/rate-limit";
+import { getRequestId, logError } from "@/lib/request-trace";
 
 function getRequesterIp(req: NextRequest) {
   const fwd = req.headers.get("x-forwarded-for");
@@ -14,16 +15,17 @@ function getRequesterIp(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = getRequestId(req.headers);
   try {
     const ip = getRequesterIp(req);
     const rl = hitRateLimit(`auth-session:${ip}`, 20, 60_000);
     if (rl.limited) {
-      return apiError("RATE_LIMITED", "Too many requests. Try again shortly.", 429);
+      return withRequestId(apiError("RATE_LIMITED", "Too many requests. Try again shortly.", 429), requestId);
     }
 
     const parsed = authSessionSchema.safeParse(await req.json());
     if (!parsed.success) {
-      return apiError("INVALID_REQUEST", "Invalid request payload.", 400);
+      return withRequestId(apiError("INVALID_REQUEST", "Invalid request payload.", 400), requestId);
     }
 
     const adminAuth = getFirebaseAdminAuth();
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     await setSessionCookie(decoded.uid, role, schoolId || undefined);
 
-    return apiSuccess({
+    return withRequestId(apiSuccess({
       user: {
         id: decoded.uid,
         email: decoded.email || null,
@@ -55,9 +57,9 @@ export async function POST(req: NextRequest) {
         role,
         profile: { schoolId },
       },
-    });
+    }), requestId);
   } catch (error: any) {
-    console.error("Auth session error:", error);
-    return apiError("UNAUTHORIZED", "Invalid or expired Firebase token.", 401);
+    logError(requestId, "Auth session error", { error: String(error) });
+    return withRequestId(apiError("UNAUTHORIZED", "Invalid or expired Firebase token.", 401), requestId);
   }
 }
