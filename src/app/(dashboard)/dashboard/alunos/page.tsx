@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { Users, Search, Plus, Loader2, Trash2 } from 'lucide-react';
@@ -19,10 +19,9 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { ClassroomServiceFB, StudentServiceFB } from '@/services/firebase/domain-services';
 import { ConfirmActionDialog } from '@/components/dashboard/ConfirmActionDialog';
 import { cn } from '@/lib/utils';
-
+import { classroomService, studentService } from '@/services/supabase/domain-services';
 
 export default function AlunosPage() {
   const { user } = useAuth();
@@ -35,36 +34,36 @@ export default function AlunosPage() {
   const [newStudent, setNewStudent] = React.useState({
     nome: '',
     matricula: '',
-    turmaId: '',
+    turma_id: '',
     status: 'ativo',
     observacoes: '',
   });
 
   const { data: turmas = [], isLoading: loadingTurmas } = useQuery({
     queryKey: ['classrooms', user?.id],
-    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
   const { data: alunos = [], isLoading: loadingStudents } = useQuery({
     queryKey: ['students', user?.id],
-    queryFn: () => user?.id ? StudentServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? studentService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: any) => StudentServiceFB.create(payload),
+    mutationFn: (payload: any) => studentService.create(payload),
     onSuccess: (_, variables) => {
       toast.success(`${variables.nome} cadastrado com sucesso.`);
       setIsCreateOpen(false);
-      setNewStudent({ nome: '', matricula: '', turmaId: '', status: 'ativo', observacoes: '' });
+      setNewStudent({ nome: '', matricula: '', turma_id: '', status: 'ativo', observacoes: '' });
       queryClient.invalidateQueries({ queryKey: ['students'] });
     },
     onError: (err: any) => toast.error(err?.message || 'Erro ao criar aluno.')
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => StudentServiceFB.delete(id),
+    mutationFn: (id: string) => studentService.delete(id),
     onSuccess: () => {
       const nome = deleteTarget?.nome || 'Aluno';
       toast.success(`${nome} removido com sucesso.`);
@@ -76,15 +75,13 @@ export default function AlunosPage() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStudent.turmaId) {
+    if (!newStudent.turma_id) {
       toast.error('Selecione uma turma.');
       return;
     }
     createMutation.mutate({
       ...newStudent,
-      teacherId: user?.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      teacher_id: user?.id,
     });
   };
 
@@ -163,8 +160,8 @@ export default function AlunosPage() {
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Turma</Label>
                     <select
                       className='w-full h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all italic'
-                      value={newStudent.turmaId}
-                      onChange={(e) => setNewStudent({ ...newStudent, turmaId: e.target.value })}
+                      value={newStudent.turma_id}
+                      onChange={(e) => setNewStudent({ ...newStudent, turma_id: e.target.value })}
                       required
                     >
                       <option value=''>Selecione...</option>
@@ -221,7 +218,7 @@ export default function AlunosPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAlunos.length > 0 ? (
           filteredAlunos.map((aluno: any) => {
-            const turma = turmas.find((t: any) => t.id === aluno.turmaId);
+            const turma = turmas.find((t: any) => t.id === aluno.turma_id);
             return (
               <Card key={aluno.id} className='rounded-[2.5rem] group hover:border-primary/40 transition-all duration-500 overflow-hidden border-slate-200/60 shadow-lg hover:shadow-xl hover:shadow-primary/5 bg-white'>
                 <CardContent className='p-8 space-y-6'>

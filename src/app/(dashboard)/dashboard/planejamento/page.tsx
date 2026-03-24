@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { CoursePlanServiceFB, ClassroomServiceFB } from '@/services/firebase/domain-services';
+import { classroomService, coursePlanService } from '@/services/supabase/domain-services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -62,18 +62,18 @@ export default function PlanejamentoPage() {
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['coursePlans', user?.id],
-    queryFn: () => user?.id ? CoursePlanServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? coursePlanService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const { data: turmas = [] } = useQuery({
     queryKey: ['classrooms', user?.id],
-    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: any) => CoursePlanServiceFB.create(payload),
+    mutationFn: (payload: any) => coursePlanService.create(payload),
     onSuccess: () => {
       toast.success('Plano de curso criado!');
       queryClient.invalidateQueries({ queryKey: ['coursePlans'] });
@@ -82,7 +82,7 @@ export default function PlanejamentoPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string, payload: any }) => CoursePlanServiceFB.update(id, payload),
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => coursePlanService.update(id, payload),
     onSuccess: () => {
       toast.success('Plano atualizado!');
       queryClient.invalidateQueries({ queryKey: ['coursePlans'] });
@@ -91,7 +91,7 @@ export default function PlanejamentoPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => CoursePlanServiceFB.delete(id),
+    mutationFn: (id: string) => coursePlanService.delete(id),
     onSuccess: () => {
       toast.success('Plano removido.');
       queryClient.invalidateQueries({ queryKey: ['coursePlans'] });
@@ -103,15 +103,20 @@ export default function PlanejamentoPage() {
     if (!form.title || !form.turmaId) return toast.error('Preencha os campos obrigatórios.');
 
     const payload = {
-      ...form,
-      teacherId: user?.id,
-      updatedAt: new Date().toISOString()
+      title: form.title,
+      description: form.description,
+      turma_id: form.turmaId,
+      serie: form.serie,
+      disciplina: form.disciplina,
+      year: form.year,
+      teacher_id: user?.id,
+      updated_at: new Date().toISOString()
     };
 
     if (editing) {
       updateMutation.mutate({ id: editing.id, payload });
     } else {
-      createMutation.mutate({ ...payload, createdAt: new Date().toISOString() });
+      createMutation.mutate({ ...payload, created_at: new Date().toISOString() });
     }
   };
 
@@ -120,7 +125,7 @@ export default function PlanejamentoPage() {
     setForm({
       title: plan.title,
       description: plan.description || '',
-      turmaId: plan.turmaId,
+      turmaId: plan.turma_id || '',
       serie: plan.serie || '',
       disciplina: plan.disciplina || '',
       year: plan.year || '2026'
@@ -129,7 +134,7 @@ export default function PlanejamentoPage() {
   };
 
   const filtered = plans.filter((p: any) =>
-    p.title.toLowerCase().includes(search.toLowerCase())
+    (p.title || '').toLowerCase().includes(search.toLowerCase())
   );
 
   if (isLoading) {
@@ -164,7 +169,7 @@ export default function PlanejamentoPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((plan: any) => {
-          const turma = turmas.find((t: any) => t.id === plan.turmaId);
+          const turma = turmas.find((t: any) => t.id === plan.turma_id);
           return (
             <Card key={plan.id} className="rounded-[2rem] group hover:border-primary/30 transition-all duration-500">
               <CardContent className="p-6 space-y-4">

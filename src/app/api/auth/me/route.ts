@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { getSession } from "@/lib/auth-service";
 import { apiSuccess } from "@/lib/api-response";
-import { getFirebaseAdminAuth, getFirebaseAdminDb } from "@/lib/firebase-admin";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET() {
   const session = await getSession();
@@ -17,21 +17,27 @@ export async function GET() {
   let schoolId: string | null = (session.schoolId as string) || null;
 
   try {
-    const authUser = await getFirebaseAdminAuth().getUser(session.userId as string);
-    email = authUser.email || null;
-    name = authUser.displayName || name;
+    const { data: { user: supabaseUser }, error: authError } = await supabaseAdmin.auth.getUser(session.userId as string);
+    if (!authError && supabaseUser) {
+      email = supabaseUser.email || null;
+      name = supabaseUser.user_metadata?.name || name;
+    }
   } catch {
     // Keep session-only fallback.
   }
 
   try {
-    const doc = await getFirebaseAdminDb().collection("users").doc(session.userId as string).get();
-    if (doc.exists) {
-      const data = doc.data() || {};
-      role = (data.role as string) || role;
-      schoolId = (data.schoolId as string) || schoolId;
-      name = (data.name as string) || name;
-      email = (data.email as string) || email;
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', session.userId)
+      .single();
+      
+    if (profile) {
+      role = profile.role || role;
+      schoolId = profile.school_id || schoolId;
+      name = profile.name || name;
+      email = profile.email || email;
     }
   } catch {
     // Keep session/user-auth fallback.

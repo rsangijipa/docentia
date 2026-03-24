@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
-import { ClassroomServiceFB, StudentServiceFB } from '@/services/firebase/domain-services';
+import { classroomService, studentService } from '@/services/supabase/domain-services';
 
 type Turma = {
   id: string;
@@ -32,13 +32,13 @@ export default function TurmaDetailPage() {
 
   const { data: turma, isLoading: loadingTurma, error: errorTurma } = useQuery({
     queryKey: ['classroom', id],
-    queryFn: () => ClassroomServiceFB.getById(id),
+    queryFn: () => classroomService.getById(id),
     enabled: !!id
   });
 
   const { data: alunos = [], isLoading: loadingAlunos } = useQuery({
     queryKey: ['students', id],
-    queryFn: () => StudentServiceFB.getByClass(id),
+    queryFn: () => studentService.getByClass(id),
     enabled: !!id
   });
 

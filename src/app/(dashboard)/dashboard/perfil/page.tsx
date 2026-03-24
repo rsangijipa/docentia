@@ -17,7 +17,7 @@ import {
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserServiceFB } from '@/services/firebase/domain-services';
+import { userService } from '@/services/supabase/domain-services';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,35 +31,35 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Buscar perfil detalhado do Firestore
+  // Buscar perfil detalhado do Supabase
   const { data: profile } = useQuery({
     queryKey: ['userProfile', user?.email],
-    queryFn: () => user?.email ? UserServiceFB.getByEmail(user.email) : null,
+    queryFn: () => user?.email ? userService.getByEmail(user.email) : null,
     enabled: !!user?.email
   });
 
   const [formData, setFormData] = React.useState({
     nome: '',
     email: '',
-    disciplinas: '',
-    instituicao: '',
+    disciplina: '',
+    escola_nome: '',
     biografia: ''
   });
 
   React.useEffect(() => {
     if (profile) {
       setFormData({
-        nome: profile.nome || profile.name || '',
+        nome: profile.name || '',
         email: profile.email || '',
-        disciplinas: Array.isArray(profile.disciplinas) ? profile.disciplinas.join(', ') : '',
-        instituicao: profile.instituicao || profile.schoolName || '',
+        disciplina: profile.disciplina || '',
+        escola_nome: profile.escola_nome || '',
         biografia: profile.biografia || ''
       });
     }
   }, [profile]);
 
   const mutation = useMutation({
-    mutationFn: (data: any) => user ? UserServiceFB.updateProfile(user.id, data) : Promise.reject('No user'),
+    mutationFn: (data: any) => user ? userService.updateProfile(user.id, data) : Promise.reject('No user'),
     onSuccess: () => {
       toast.success('Perfil atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
@@ -70,11 +70,11 @@ export default function ProfilePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const updatedData = {
-      nome: formData.nome,
-      disciplinas: formData.disciplinas.split(',').map((d: string) => d.trim()).filter((d: string) => d),
-      instituicao: formData.instituicao,
+      name: formData.nome,
+      disciplina: formData.disciplina,
+      escola_nome: formData.escola_nome,
       biografia: formData.biografia,
-      updatedAt: new Date().toISOString()
+      updated_at: new Date().toISOString()
     };
     mutation.mutate(updatedData);
   };
@@ -200,12 +200,12 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Disciplinas (separadas por vírgula)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Disciplinas</Label>
                   <div className="relative group">
                     <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                     <Input
-                      value={formData.disciplinas}
-                      onChange={(e) => setFormData({ ...formData, disciplinas: e.target.value })}
+                      value={formData.disciplina}
+                      onChange={(e) => setFormData({ ...formData, disciplina: e.target.value })}
                       className="h-14 pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-bold"
                       placeholder="Ex: Português, Literatura"
                     />
@@ -217,8 +217,8 @@ export default function ProfilePage() {
                   <div className="relative group">
                     <Zap className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                     <Input
-                      value={formData.instituicao}
-                      onChange={(e) => setFormData({ ...formData, instituicao: e.target.value })}
+                      value={formData.escola_nome}
+                      onChange={(e) => setFormData({ ...formData, escola_nome: e.target.value })}
                       className="h-14 pl-12 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-bold"
                       placeholder="Sua escola ou faculdade"
                     />

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { ClipboardList, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { ClassroomServiceFB, DiaryEntryServiceFB, StudentServiceFB } from '@/services/firebase/domain-services';
+import { classroomService, diaryEntryService, studentService } from '@/services/supabase/domain-services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -54,19 +54,19 @@ export default function DiarioPage() {
 
   const { data: turmas = [], isLoading: loadingTurmas } = useQuery({
     queryKey: ['classrooms', user?.id],
-    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
   const { data: items = [], isLoading: loadingItems } = useQuery({
     queryKey: ['diaries', user?.id],
-    queryFn: () => user?.id ? DiaryEntryServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? diaryEntryService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
   const { data: students = [], isLoading: loadingStudents } = useQuery({
     queryKey: ['students', form.turmaId],
-    queryFn: () => form.turmaId ? StudentServiceFB.getByClass(form.turmaId) : [],
+    queryFn: () => form.turmaId ? studentService.getByClass(form.turmaId) : [],
     enabled: !!form.turmaId && open
   });
 
@@ -87,15 +87,13 @@ export default function DiarioPage() {
     let date = '';
     if (typeof entry.date === 'string') {
       date = entry.date.slice(0, 10);
-    } else if (entry.date?.seconds) {
-      date = new Date(entry.date.seconds * 1000).toISOString().slice(0, 10);
     }
 
     setForm({
-      turmaId: entry.roomId || entry.turmaId || '',
+      turmaId: entry.turma_id || '',
       date,
-      conteudoMinistrado: entry.conteudoMinistrado || entry.content || '',
-      observacoes: entry.observacoes || entry.observations || '',
+      conteudoMinistrado: entry.conteudo_ministrado || '',
+      observacoes: entry.observacoes || '',
       status: entry.status || 'Realizado',
       attendance: entry.attendance || {},
     });
@@ -103,7 +101,7 @@ export default function DiarioPage() {
   };
 
   const createMutation = useMutation({
-    mutationFn: (payload: any) => DiaryEntryServiceFB.create(payload),
+    mutationFn: (payload: any) => diaryEntryService.create(payload),
     onSuccess: () => {
       toast.success('Diario registrado.');
       queryClient.invalidateQueries({ queryKey: ['diaries', user?.id] });
@@ -114,7 +112,7 @@ export default function DiarioPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string, payload: any }) => DiaryEntryServiceFB.update(id, payload),
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => diaryEntryService.update(id, payload),
     onSuccess: () => {
       toast.success('Diario atualizado.');
       queryClient.invalidateQueries({ queryKey: ['diaries', user?.id] });
@@ -125,7 +123,7 @@ export default function DiarioPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => DiaryEntryServiceFB.delete(id),
+    mutationFn: (id: string) => diaryEntryService.delete(id),
     onSuccess: () => {
       toast.success('Registro removido.');
       queryClient.invalidateQueries({ queryKey: ['diaries', user?.id] });
@@ -142,23 +140,20 @@ export default function DiarioPage() {
     }
 
     const payload = {
-      roomId: form.turmaId,
-      turmaId: form.turmaId,
-      teacherId: user.id,
-      date: new Date(`${form.date}T08:00:00`).toISOString(),
-      conteudoMinistrado: form.conteudoMinistrado,
-      content: form.conteudoMinistrado,
+      turma_id: form.turmaId,
+      teacher_id: user.id,
+      date: form.date,
+      conteudo_ministrado: form.conteudoMinistrado,
       observacoes: form.observacoes,
-      observations: form.observacoes,
       status: form.status,
       attendance: form.attendance,
-      updatedAt: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     if (editing?.id) {
       updateMutation.mutate({ id: editing.id, payload });
     } else {
-      createMutation.mutate({ ...payload, createdAt: new Date().toISOString() });
+      createMutation.mutate({ ...payload, created_at: new Date().toISOString() });
     }
   };
 
@@ -168,8 +163,8 @@ export default function DiarioPage() {
   };
 
   const filtered = items.filter((entry: any) => {
-    const turma = turmas.find((t: any) => t.id === (entry.roomId || entry.turmaId));
-    const source = `${entry.conteudoMinistrado || entry.content || ''} ${turma?.nome || ''}`.toLowerCase();
+    const turma = turmas.find((t: any) => t.id === (entry.turma_id));
+    const source = `${entry.conteudo_ministrado || ''} ${turma?.nome || ''}`.toLowerCase();
     return source.includes(search.toLowerCase());
   });
 

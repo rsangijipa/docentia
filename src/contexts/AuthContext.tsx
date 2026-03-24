@@ -3,10 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-
-import { auth, db } from '@/lib/firebase/client';
-import { loginWithEmail, logoutUser, registerWithEmail } from '@/lib/firebase/auth';
+import { supabase } from '@/lib/supabase/client';
 
 export interface User {
   id: string;
@@ -91,41 +88,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        if (auth.currentUser) {
-          const token = await auth.currentUser.getIdToken(true);
-          await establishServerSession(token);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        try {
+          await establishServerSession(session.access_token);
+          await refreshUser();
+        } catch (error) {
+          console.error('Error syncing session:', error);
         }
-      } catch {
-        // Ignore and continue to session check.
+      } else {
+        setUser(null);
       }
-
-      await refreshUser();
       setLoading(false);
-    };
+    });
 
-    checkSession();
+    return () => subscription.unsubscribe();
   }, [establishServerSession, refreshUser]);
 
   const signIn = async (email: string, pass: string) => {
     setLoading(true);
     try {
-      const devLoginResponse = await fetch('/api/auth/dev-login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, pass }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pass,
       });
 
-      const devPayload = await readApiPayload(devLoginResponse);
-      if (!devLoginResponse.ok || !devPayload?.success) {
-        const fbUser = await loginWithEmail(email, pass);
-        const token = await fbUser.getIdToken(true);
-        await establishServerSession(token);
-      }
+      if (error) throw error;
+      if (!data.session) throw new Error('Falha ao iniciar sessao');
 
+      await establishServerSession(data.session.access_token);
       await refreshUser();
+      
       toast.success('Bem-vindo de volta!');
       router.replace('/dashboard');
       router.refresh();
@@ -141,22 +134,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async ({ name, email, pass, role, schoolId }: { name: string, email: string, pass: string, role?: string, schoolId?: string }) => {
     setLoading(true);
     try {
-      const fbUser = await registerWithEmail(name, email, pass);
-
-      await setDoc(doc(db, 'users', fbUser.uid), {
-        id: fbUser.uid,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        name,
-        role: role || 'TEACHER',
-        schoolId: schoolId || null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+        password: pass,
+        options: {
+          data: {
+            name,
+            role: role || 'TEACHER',
+            school_id: schoolId || null,
+          }
+        }
+      });
 
-      const token = await fbUser.getIdToken(true);
-      await establishServerSession(token);
+      if (error) throw error;
+      if (!data.session) {
+        toast.info('Verifique seu email para confirmar o cadastro.');
+        return;
+      }
 
+      await establishServerSession(data.session.access_token);
       await refreshUser();
+      
       toast.success(`Conta criada com sucesso! Bem-vindo, ${name}.`);
       router.replace('/dashboard');
       router.refresh();
@@ -172,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     setLoading(true);
     try {
-      await logoutUser();
+      await supabase.auth.signOut();
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',

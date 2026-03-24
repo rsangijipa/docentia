@@ -21,7 +21,18 @@ function getRequesterIp(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const requestId = getRequestId(req.headers);
   try {
-    const enabled = process.env.DEV_LOGIN_ENABLED === "true" || process.env.DEV_LOGIN_ENABLED === "\"true\"" || true; // Forçando ativação para testes
+    const isDev = process.env.NODE_ENV === "development";
+    const isEnabled = process.env.DEV_LOGIN_ENABLED === "true";
+    const devSecret = process.env.DEV_LOGIN_SECRET;
+    const providedSecret = req.headers.get("x-dev-secret");
+
+    if (!isDev || !isEnabled) {
+      return withRequestId(apiError("NOT_FOUND", "Endpoint not available.", 404), requestId);
+    }
+
+    if (!devSecret || providedSecret !== devSecret) {
+      return withRequestId(apiError("UNAUTHORIZED", "Invalid dev secret.", 401), requestId);
+    }
 
     const ip = getRequesterIp(req);
     const rl = hitRateLimit(`auth-dev-login:${ip}`, 20, 60_000);

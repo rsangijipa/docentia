@@ -4,7 +4,7 @@ import * as React from 'react';
 import { LayoutDashboard, CheckCircle2, AlertTriangle, XCircle, Info, RefreshCw, Loader2, Sparkles, TrendingUp, ShieldCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { ConsistenciaServiceFB } from '@/services/firebase/domain-services';
+import { consistenciaService } from '@/services/supabase/domain-services';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +17,7 @@ export default function ConsistenciaPage() {
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['consistencia', user?.id],
-    queryFn: () => ConsistenciaServiceFB.getAudit(user!.id),
+    queryFn: () => consistenciaService.getAudit(user!.id),
     enabled: !!user?.id
   });
 

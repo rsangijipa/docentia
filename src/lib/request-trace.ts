@@ -1,8 +1,12 @@
-import { randomUUID } from "crypto";
-
 export function getRequestId(headers?: Headers) {
   const upstream = headers?.get("x-request-id") || headers?.get("x-correlation-id");
-  return upstream || randomUUID();
+  if (upstream) return upstream;
+  
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function logInfo(requestId: string, message: string, meta?: Record<string, unknown>) {

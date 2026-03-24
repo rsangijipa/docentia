@@ -1,6 +1,11 @@
 import { SignJWT, jwtVerify } from "jose";
 
-const secretKey = process.env.JWT_SECRET || "docentia_jwt_secret_key_2026_premium";
+const secretKey = process.env.JWT_SECRET;
+
+if (!secretKey || secretKey.length < 32) {
+  throw new Error("FATAL: JWT_SECRET environment variable is missing or too short (min 32 chars).");
+}
+
 const key = new TextEncoder().encode(secretKey);
 
 export const SESSION_NAME = "docentia-session";

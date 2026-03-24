@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ConfirmActionDialog } from '@/components/dashboard/ConfirmActionDialog';
-import { ClassroomServiceFB } from '@/services/firebase/domain-services';
+import { classroomService } from '@/services/supabase/domain-services';
 
 export default function TurmasPage() {
   const { user } = useAuth();
@@ -38,16 +38,14 @@ export default function TurmasPage() {
 
   const { data: turmas = [], isLoading: loading } = useQuery({
     queryKey: ['classrooms', user?.id],
-    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: any) => ClassroomServiceFB.create({
+    mutationFn: (payload: any) => classroomService.create({
       ...payload,
-      teacherId: user?.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      teacher_id: user?.id,
     }),
     onSuccess: (_, variables) => {
       toast.success(`Turma ${variables.nome} criada com sucesso.`);
@@ -59,7 +57,7 @@ export default function TurmasPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => ClassroomServiceFB.delete(id),
+    mutationFn: (id: string) => classroomService.delete(id),
     onSuccess: () => {
       const nome = deleteTarget?.nome || 'Turma';
       toast.success(`Turma ${nome} removida.`);

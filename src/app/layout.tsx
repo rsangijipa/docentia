@@ -22,6 +22,20 @@ export const metadata: Metadata = {
   title: 'Docentia | Escritório Pedagógico',
   description: 'A inteligência definitiva para o planejamento e gestão pedagógica do professor moderno.',
   keywords: 'plano de aula, diário de classe, BNCC, PNLD, gestão escolar, professor, docentia',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://docentia.com.br'),
+  openGraph: {
+    title: 'Docentia | Escritório Pedagógico',
+    description: 'A inteligência definitiva para o planejamento e gestão pedagógica do professor moderno.',
+    url: 'https://docentia.com.br',
+    siteName: 'Docentia',
+    locale: 'pt_BR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Docentia | Escritório Pedagógico',
+    description: 'A inteligência definitiva para o planejamento e gestão pedagógica do professor moderno.',
+  },
   icons: {
     icon: [
       { url: '/logo.png', sizes: '32x32', type: 'image/png' },

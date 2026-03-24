@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import { ArrowRight, Sparkles, ShieldCheck, GraduationCap, Users, BookmarkCheck } from 'lucide-react';
 
 export function LandingHero() {
@@ -102,6 +103,15 @@ export function LandingHero() {
                         </div>
                     </div>
                 </div>
+                {/* Image component added here, outside the p tag for correct JSX structure */}
+                <Image
+                    src="/dashboard-preview.png"
+                    width={1200}
+                    height={800}
+                    alt="Visualização do Painel Docentia"
+                    className="rounded-xl shadow-2xl border border-slate-200 mt-16" // Added margin-top for spacing
+                    priority
+                />
             </div>
         </section>
     );

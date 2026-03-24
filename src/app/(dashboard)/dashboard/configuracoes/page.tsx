@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserServiceFB } from '@/services/firebase/domain-services';
+import { userService } from '@/services/supabase/domain-services';
 import { toast } from 'sonner';
 
 const tabs = [
@@ -27,22 +27,22 @@ export default function ConfiguracoesPage() {
 
     const { data: profile } = useQuery({
         queryKey: ['userProfile', user?.email],
-        queryFn: () => user?.email ? UserServiceFB.getByEmail(user.email) : null,
+        queryFn: () => user?.email ? userService.getByEmail(user.email) : null,
         enabled: !!user?.email
     });
 
     // Sincronizar estado quando o perfil carregar
     useEffect(() => {
         if (profile) {
-            setNome(profile.nome || user?.name || '');
-            setEscola(profile.escola || '');
+            setNome(profile.name || user?.name || '');
+            setEscola(profile.escola_nome || '');
             setDisciplina(profile.disciplina || '');
         }
     }, [profile, user]);
 
     const queryClient = useQueryClient();
     const updateMutation = useMutation({
-        mutationFn: (data: any) => user?.id ? UserServiceFB.updateProfile(user.id, data) : Promise.reject(),
+        mutationFn: (data: any) => user?.id ? userService.updateProfile(user.id, data) : Promise.reject(),
         onSuccess: () => {
             toast.success('Configurações salvas com sucesso!');
             queryClient.invalidateQueries({ queryKey: ['userProfile'] });
@@ -239,7 +239,7 @@ export default function ConfiguracoesPage() {
                             </div>
                         </div>
                         <div className="flex justify-end">
-                            <Button onClick={() => toast.info('Alteração de senha disponível após integração com Firebase.')} className="bg-primary hover:bg-primary/90 gap-2">
+                            <Button onClick={() => toast.info('Alteração de senha disponível via Supabase Auth.')} className="bg-primary hover:bg-primary/90 gap-2">
                                 <Shield className="w-4 h-4" />
                                 Alterar Senha
                             </Button>

@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TemplateServiceFB } from '@/services/firebase/domain-services';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +37,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { ConfirmActionDialog } from '@/components/dashboard/ConfirmActionDialog';
 import Link from 'next/link';
+import { templateService } from '@/services/supabase/domain-services';
 
 export default function TemplatesPage() {
   const { user } = useAuth();
@@ -56,12 +56,12 @@ export default function TemplatesPage() {
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['templates', user?.id],
-    queryFn: () => user?.id ? TemplateServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? templateService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => TemplateServiceFB.create(data),
+    mutationFn: (data: any) => templateService.create(data),
     onSuccess: () => {
       toast.success('Template salvo com sucesso!');
       setIsCreateOpen(false);
@@ -71,7 +71,7 @@ export default function TemplatesPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => TemplateServiceFB.delete(id),
+    mutationFn: (id: string) => templateService.delete(id),
     onSuccess: () => {
       toast.success('Template removido.');
       setDeleteTarget(null);
@@ -81,12 +81,12 @@ export default function TemplatesPage() {
 
   const duplicateMutation = useMutation({
     mutationFn: (template: any) => {
-      const { id, ...data } = template;
-      return TemplateServiceFB.create({
+      const { id, created_at, updated_at, ...data } = template;
+      return templateService.create({
         ...data,
         titulo: `${data.titulo} (Cópia)`,
-        teacherId: user?.id,
-        createdAt: new Date().toISOString()
+        teacher_id: user?.id,
+        created_at: new Date().toISOString()
       });
     },
     onSuccess: () => {
@@ -96,8 +96,8 @@ export default function TemplatesPage() {
   });
 
   const filteredTemplates = templates.filter((t: any) =>
-    t.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+    (t.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.categoria || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (isLoading) {
@@ -143,7 +143,15 @@ export default function TemplatesPage() {
                 </div>
               </DialogHeader>
 
-              <form onSubmit={(e) => { e.preventDefault(); if (user?.id) createMutation.mutate({ ...newTemplate, teacherId: user.id }); }} className="p-10 space-y-6">
+              <form onSubmit={(e) => { e.preventDefault(); if (user?.id) createMutation.mutate({ 
+                titulo: newTemplate.titulo,
+                categoria: newTemplate.categoria,
+                tipo: newTemplate.tipo,
+                conteudo: newTemplate.conteudo,
+                tags: newTemplate.tags,
+                teacher_id: user.id,
+                created_at: new Date().toISOString()
+               }); }} className="p-10 space-y-6">
                 <div className='space-y-5'>
                   <div className='space-y-2'>
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Título do Template</Label>

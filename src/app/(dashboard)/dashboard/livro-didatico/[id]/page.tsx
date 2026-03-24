@@ -16,7 +16,7 @@ import {
     Layout
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TextbookServiceFB, ClassroomServiceFB } from '@/services/firebase/domain-services';
+import { textbookService, classroomService } from '@/services/supabase/domain-services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,18 +31,18 @@ export default function TextbookDetailPage() {
 
     const { data: book, isLoading: loadingBook } = useQuery({
         queryKey: ['textbook', id],
-        queryFn: () => TextbookServiceFB.getById(id),
+        queryFn: () => textbookService.getById(id),
         enabled: !!id
     });
 
     const { data: turmas = [] } = useQuery({
         queryKey: ['classrooms'],
-        queryFn: () => ClassroomServiceFB.getByTeacher(book?.teacherId),
-        enabled: !!book?.teacherId
+        queryFn: () => classroomService.getByTeacher(book?.teacher_id),
+        enabled: !!book?.teacher_id
     });
 
     const updateMutation = useMutation({
-        mutationFn: (data: any) => TextbookServiceFB.update(id, data),
+        mutationFn: (data: any) => textbookService.update(id, data),
         onSuccess: () => {
             toast.success('Progresso atualizado!');
             queryClient.invalidateQueries({ queryKey: ['textbook', id] });

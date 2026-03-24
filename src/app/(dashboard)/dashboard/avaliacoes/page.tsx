@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { ClassroomServiceFB, EvaluationServiceFB, StudentServiceFB, EvaluationResultServiceFB } from '@/services/firebase/domain-services';
+import { classroomService, evaluationService, studentService, evaluationResultService } from '@/services/supabase/domain-services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,20 +45,20 @@ export default function AvaliacoesPage() {
 
   const { data: turmas = [], isLoading: loadingTurmas } = useQuery({
     queryKey: ['classrooms', user?.id],
-    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
   const { data: evaluations = [], isLoading: loadingEvals } = useQuery({
     queryKey: ['evaluations', user?.id],
-    queryFn: () => user?.id ? EvaluationServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? evaluationService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
   const loading = loadingTurmas || loadingEvals;
 
   const createEvalMutation = useMutation({
-    mutationFn: (payload: any) => EvaluationServiceFB.create(payload),
+    mutationFn: (payload: any) => evaluationService.create(payload),
     onSuccess: () => {
       toast.success('Avaliação criada.');
       queryClient.invalidateQueries({ queryKey: ['evaluations', user?.id] });
@@ -68,7 +68,7 @@ export default function AvaliacoesPage() {
   });
 
   const updateEvalMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string, payload: any }) => EvaluationServiceFB.update(id, payload),
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => evaluationService.update(id, payload),
     onSuccess: () => {
       toast.success('Avaliação atualizada.');
       queryClient.invalidateQueries({ queryKey: ['evaluations', user?.id] });
@@ -78,7 +78,7 @@ export default function AvaliacoesPage() {
   });
 
   const deleteEvalMutation = useMutation({
-    mutationFn: (id: string) => EvaluationServiceFB.delete(id),
+    mutationFn: (id: string) => evaluationService.delete(id),
     onSuccess: () => {
       toast.success('Avaliação excluída.');
       queryClient.invalidateQueries({ queryKey: ['evaluations', user?.id] });
@@ -102,26 +102,24 @@ export default function AvaliacoesPage() {
       return;
     }
 
+    const payload = {
+      title: evalForm.title,
+      turma_id: evalForm.turmaId,
+      teacher_id: user?.id,
+      date: evalForm.date,
+      weight: Number(evalForm.weight),
+      max_grade: Number(evalForm.maxGrade),
+    };
+
     if (activeEval) {
       updateEvalMutation.mutate({
         id: activeEval.id,
-        payload: {
-          title: evalForm.title,
-          roomId: evalForm.turmaId,
-          date: evalForm.date,
-          weight: Number(evalForm.weight),
-          maxGrade: Number(evalForm.maxGrade),
-        }
+        payload
       });
     } else {
       createEvalMutation.mutate({
-        title: evalForm.title,
-        roomId: evalForm.turmaId,
-        teacherId: user?.id,
-        date: evalForm.date,
-        weight: Number(evalForm.weight),
-        maxGrade: Number(evalForm.maxGrade),
-        createdAt: new Date().toISOString()
+        ...payload,
+        created_at: new Date().toISOString()
       });
     }
   };
@@ -138,15 +136,15 @@ export default function AvaliacoesPage() {
 
     try {
       const [studentsData, resultsData] = await Promise.all([
-        StudentServiceFB.getByClass(ev.roomId),
-        EvaluationResultServiceFB.getByEvaluation(ev.id)
+        studentService.getByClass(ev.turma_id),
+        evaluationResultService.getByEvaluation(ev.id)
       ]);
 
       setStudents(studentsData || []);
 
       const resultsMap: Record<string, number> = {};
       resultsData.forEach((res: any) => {
-        resultsMap[res.studentId] = res.grade;
+        resultsMap[res.student_id] = res.grade;
       });
       setEvaluationResults(resultsMap);
     } catch {
@@ -158,7 +156,7 @@ export default function AvaliacoesPage() {
 
   const handleSaveGrades = () => {
     const ops = Object.keys(evaluationResults).map(studentId =>
-      EvaluationResultServiceFB.saveResult(studentId, activeEval.id, evaluationResults[studentId])
+      evaluationResultService.saveResult(studentId, activeEval.id, evaluationResults[studentId], user?.id!)
     );
     saveGradesMutation.mutate(ops);
   };

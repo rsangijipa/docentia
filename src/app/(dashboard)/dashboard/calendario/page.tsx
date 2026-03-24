@@ -1,11 +1,11 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { CalendarDays, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { CalendarEventServiceFB } from '@/services/firebase/domain-services';
+import { calendarEventService } from '@/services/supabase/domain-services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -58,8 +58,8 @@ export default function CalendarioPage() {
     try {
       setLoading(true);
       const data = user.schoolId
-        ? await CalendarEventServiceFB.getAllBySchool(user.schoolId)
-        : await CalendarEventServiceFB.getAllByTeacher(user.id);
+        ? await calendarEventService.getAllBySchool(user.schoolId)
+        : await calendarEventService.getAllByTeacher(user.id);
       setEventos((data || []).sort(sortByDate));
     } catch {
       toast.error('Erro ao carregar eventos.');
@@ -103,25 +103,22 @@ export default function CalendarioPage() {
     setSubmitting(true);
     try {
       const payload = {
-        titulo: form.titulo,
         title: form.titulo,
-        tipo: form.tipo,
         type: form.tipo,
-        data: form.data,
         date: form.data,
-        horario: form.horario,
-        teacherId: user.id,
-        schoolId: user.schoolId || null,
-        updatedAt: new Date().toISOString(),
+        time: form.horario,
+        teacher_id: user.id,
+        school_id: user.schoolId || null,
+        updated_at: new Date().toISOString(),
       };
 
       if (editing?.id) {
-        await CalendarEventServiceFB.update(editing.id, payload);
+        await calendarEventService.update(editing.id, payload);
         toast.success('Evento atualizado.');
       } else {
-        await CalendarEventServiceFB.create({
+        await calendarEventService.create({
           ...payload,
-          createdAt: new Date().toISOString(),
+          created_at: new Date().toISOString(),
         });
         toast.success('Evento criado.');
       }
@@ -140,7 +137,7 @@ export default function CalendarioPage() {
     if (!deleteTarget?.id) return;
     setDeleting(true);
     try {
-      await CalendarEventServiceFB.delete(deleteTarget.id);
+      await calendarEventService.delete(deleteTarget.id);
       toast.success('Evento removido.');
       setDeleteTarget(null);
       await fetchData();
@@ -186,9 +183,9 @@ export default function CalendarioPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-3'>
-                <p className='text-sm text-slate-600'>Tipo: {evento.tipo || evento.type || 'Atividade'}</p>
-                <p className='text-sm text-slate-600'>Data: {evento.data || evento.date || '-'}</p>
-                {evento.horario ? <p className='text-sm text-slate-600'>Horario: {evento.horario}</p> : null}
+                <p className='text-sm text-slate-600'>Tipo: {evento.type || evento.tipo || 'Atividade'}</p>
+                <p className='text-sm text-slate-600'>Data: {evento.date || evento.data || '-'}</p>
+                {evento.time || evento.horario ? <p className='text-sm text-slate-600'>Horario: {evento.time || evento.horario}</p> : null}
                 <div className='flex gap-2 pt-2'>
                   <Button variant='outline' size='sm' onClick={() => openEdit(evento)}>Editar</Button>
                   <Button variant='outline' size='sm' className='text-destructive' onClick={() => setDeleteTarget(evento)}>

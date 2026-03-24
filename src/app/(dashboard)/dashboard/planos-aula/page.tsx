@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { ArrowRight, Calendar, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { ClassroomServiceFB, LessonPlanServiceFB } from '@/services/firebase/domain-services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,7 +48,7 @@ function dateInputToIso(dateInput: string) {
   if (!dateInput) return new Date().toISOString();
   return new Date(`${dateInput}T08:00:00`).toISOString();
 }
-
+import { classroomService, lessonPlanService } from '@/services/supabase/domain-services';
 
 export default function PlanosAulaPage() {
   const { user } = useAuth();
@@ -64,13 +63,13 @@ export default function PlanosAulaPage() {
 
   const { data: turmas = [], isLoading: loadingTurmas } = useQuery({
     queryKey: ['classrooms', user?.id],
-    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
   const { data: planos = [], isLoading: loadingPlanos } = useQuery({
     queryKey: ['lessonPlans', user?.id],
-    queryFn: () => user?.id ? LessonPlanServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? lessonPlanService.getByTeacher(user.id) : [],
     enabled: !!user?.id,
   });
 
@@ -92,25 +91,23 @@ export default function PlanosAulaPage() {
     let date = '';
     if (typeof plano.date === 'string') {
       date = plano.date.slice(0, 10);
-    } else if (plano.date?.seconds) {
-      date = new Date(plano.date.seconds * 1000).toISOString().slice(0, 10);
     }
 
     setForm({
-      titulo: plano.topic || plano.titulo || '',
-      turmaId: plano.turmaId || plano.roomId || '',
+      titulo: plano.topic || '',
+      turmaId: plano.turma_id || '',
       data: date,
-      objetivo: plano.goals || plano.objetivo || '',
-      metodologia: plano.methodology || plano.metodologia || '',
-      recursos: plano.resources || plano.recursos || '',
+      objetivo: plano.goals || '',
+      metodologia: plano.methodology || '',
+      recursos: plano.resources || '',
       habilidades: plano.habilidades || '',
-      bnccCodes: plano.bnccCodes || [],
+      bnccCodes: plano.bncc_codes || [],
     });
     setOpen(true);
   };
 
   const createMutation = useMutation({
-    mutationFn: (payload: any) => LessonPlanServiceFB.create(payload),
+    mutationFn: (payload: any) => lessonPlanService.create(payload),
     onSuccess: () => {
       toast.success('Plano de aula criado.');
       queryClient.invalidateQueries({ queryKey: ['lessonPlans', user?.id] });
@@ -121,7 +118,7 @@ export default function PlanosAulaPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string, payload: any }) => LessonPlanServiceFB.update(id, payload),
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => lessonPlanService.update(id, payload),
     onSuccess: () => {
       toast.success('Plano de aula atualizado.');
       queryClient.invalidateQueries({ queryKey: ['lessonPlans', user?.id] });
@@ -132,7 +129,7 @@ export default function PlanosAulaPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => LessonPlanServiceFB.delete(id),
+    mutationFn: (id: string) => lessonPlanService.delete(id),
     onSuccess: () => {
       toast.success('Plano removido com sucesso.');
       queryClient.invalidateQueries({ queryKey: ['lessonPlans', user?.id] });
@@ -148,28 +145,26 @@ export default function PlanosAulaPage() {
       return;
     }
 
-    const turma = turmas.find((t: any) => t.id === form.turmaId);
-
     const payload = {
       topic: form.titulo,
-      turmaId: form.turmaId,
-      roomId: form.turmaId,
-      nomeTurma: turma?.nome || null,
+      turma_id: form.turmaId,
       date: dateInputToIso(form.data),
       goals: form.objetivo,
       methodology: form.metodologia,
       resources: form.recursos,
       habilidades: form.habilidades,
-      bnccCodes: form.bnccCodes,
-      teacherId: user.id,
-      status: 'Planejado',
-      updatedAt: new Date().toISOString(),
+      bncc_codes: form.bnccCodes,
+      teacher_id: user.id,
+      updated_at: new Date().toISOString(),
     };
 
     if (editing?.id) {
       updateMutation.mutate({ id: editing.id, payload });
     } else {
-      createMutation.mutate({ ...payload, createdAt: new Date().toISOString() });
+      createMutation.mutate({ 
+        ...payload, 
+        created_at: new Date().toISOString() 
+      });
     }
   };
 
@@ -179,8 +174,8 @@ export default function PlanosAulaPage() {
   };
 
   const filtered = planos.filter((p: any) => {
-    const turmaName = turmas.find((t: any) => t.id === (p.turmaId || p.roomId))?.nome || p.nomeTurma || '';
-    const title = p.topic || p.titulo || '';
+    const turmaName = turmas.find((t: any) => t.id === (p.turma_id))?.nome || '';
+    const title = p.topic || '';
     return `${title} ${turmaName}`.toLowerCase().includes(search.toLowerCase());
   });
 

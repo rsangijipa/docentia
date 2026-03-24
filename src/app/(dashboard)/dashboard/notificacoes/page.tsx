@@ -17,13 +17,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { NotificationServiceFB } from '@/services/firebase/domain-services';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatDate } from '@/lib/utils';
 import Link from 'next/link';
+import { notificationService } from '@/services/supabase/domain-services';
 
 export default function NotificationsPage() {
   const { user } = useAuth();
@@ -31,19 +31,19 @@ export default function NotificationsPage() {
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.id],
-    queryFn: () => user?.id ? NotificationServiceFB.getByUser(user.id) : [],
+    queryFn: () => user?.id ? notificationService.getByUser(user.id) : [],
     enabled: !!user?.id
   });
 
   const markReadMutation = useMutation({
-    mutationFn: (id: string) => NotificationServiceFB.markAsRead(id),
+    mutationFn: (id: string) => notificationService.markAsRead(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     }
   });
 
   const markAllReadMutation = useMutation({
-    mutationFn: () => user?.id ? NotificationServiceFB.markAllAsRead(user.id) : Promise.reject(),
+    mutationFn: () => user?.id ? notificationService.markAllAsRead(user.id) : Promise.reject(),
     onSuccess: () => {
       toast.success('Todas as notificações marcadas como lidas.');
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -51,14 +51,14 @@ export default function NotificationsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => NotificationServiceFB.delete(id),
+    mutationFn: (id: string) => notificationService.delete(id),
     onSuccess: () => {
       toast.success('Notificação removida.');
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     }
   });
 
-  const unreadCount = notifications.filter((n: any) => !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.is_read).length;
 
   if (isLoading) {
     return (
@@ -107,10 +107,10 @@ export default function NotificationsPage() {
         {notifications.length > 0 ? notifications.map((notif: any) => (
           <Card
             key={notif.id}
-            onClick={() => !notif.read && markReadMutation.mutate(notif.id)}
+            onClick={() => !notif.is_read && markReadMutation.mutate(notif.id)}
             className={cn(
               "group hover:shadow-2xl transition-all duration-700 border-slate-100 bg-white rounded-[2.5rem] overflow-hidden cursor-pointer relative",
-              !notif.read ? "border-l-4 border-l-primary shadow-lg shadow-primary/5" : "opacity-70 grayscale-[0.5]"
+              !notif.is_read ? "border-l-4 border-l-primary shadow-lg shadow-primary/5" : "opacity-70 grayscale-[0.5]"
             )}
           >
             <CardContent className="p-8 flex items-center gap-8">
@@ -130,17 +130,17 @@ export default function NotificationsPage() {
                   <Badge variant="outline" className="text-[8px] font-black uppercase tracking-[0.15em] text-slate-400 border-slate-100 px-2 py-0.5">
                     {notif.category || 'Sistema'}
                   </Badge>
-                  {!notif.read && <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
+                  {!notif.is_read && <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
                 </div>
                 <h4 className={cn(
                   "text-xl font-bold text-slate-900 transition-all group-hover:text-primary",
-                  !notif.read && "font-black"
+                  !notif.is_read && "font-black"
                 )}>{notif.title}</h4>
                 <p className="text-sm text-slate-500 font-medium leading-relaxed italic">{notif.message}</p>
                 <div className="flex items-center gap-4 pt-1">
                   <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-black uppercase tracking-widest">
                     <Clock className="w-3.5 h-3.5" />
-                    {formatDate(notif.createdAt)}
+                    {formatDate(notif.created_at)}
                   </div>
                 </div>
               </div>

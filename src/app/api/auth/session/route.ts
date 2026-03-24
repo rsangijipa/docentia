@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { authSessionSchema } from "@/lib/api-schemas";
 import { apiError, apiSuccess, withRequestId } from "@/lib/api-response";
-import { getFirebaseAdminAuth, getFirebaseAdminDb } from "@/lib/firebase-admin";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { login as setSessionCookie } from "@/lib/auth-service";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { getRequestId, logError } from "@/lib/request-trace";
@@ -23,43 +23,55 @@ export async function POST(req: NextRequest) {
       return withRequestId(apiError("RATE_LIMITED", "Too many requests. Try again shortly.", 429), requestId);
     }
 
-    const parsed = authSessionSchema.safeParse(await req.json());
-    if (!parsed.success) {
-      return withRequestId(apiError("INVALID_REQUEST", "Invalid request payload.", 400), requestId);
+    const { idToken: accessToken } = await req.json();
+    if (!accessToken) {
+      return withRequestId(apiError("INVALID_REQUEST", "Access token is required.", 400), requestId);
     }
 
-    const adminAuth = getFirebaseAdminAuth();
-    const decoded = await adminAuth.verifyIdToken(parsed.data.idToken, true);
+    const { data: { user: supabaseUser }, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+    
+    if (authError || !supabaseUser) {
+      throw authError || new Error("User not found");
+    }
 
-    let role: string = "TEACHER";
-    let schoolId: string | null = null;
-    let name: string = decoded.name || "Usuario";
+    let role: string = supabaseUser.user_metadata?.role || "TEACHER";
+    let schoolId: string | null = supabaseUser.user_metadata?.school_id || null;
+    let name: string = supabaseUser.user_metadata?.name || "Usuario";
 
+    // Attempt to enrich from profiles table if needed
     try {
-      const doc = await getFirebaseAdminDb().collection("users").doc(decoded.uid).get();
-      if (doc.exists) {
-        const data = doc.data() || {};
-        role = (data.role as string) || role;
-        schoolId = (data.schoolId as string) || null;
-        name = (data.name as string) || name;
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+        
+      if (profile) {
+        role = profile.role || role;
+        schoolId = profile.school_id || schoolId;
+        name = profile.name || name;
       }
     } catch {
-      // Do not block auth session creation on profile lookup.
+      // Non-blocking profile lookup
     }
 
-    await setSessionCookie(decoded.uid, role, schoolId || undefined);
+    await setSessionCookie(supabaseUser.id, role, schoolId || undefined);
 
     return withRequestId(apiSuccess({
       user: {
-        id: decoded.uid,
-        email: decoded.email || null,
+        id: supabaseUser.id,
+        email: supabaseUser.email || null,
         name,
         role,
         profile: { schoolId },
       },
     }), requestId);
   } catch (error: any) {
-    logError(requestId, "Auth session error", { error: String(error) });
-    return withRequestId(apiError("UNAUTHORIZED", "Invalid or expired Firebase token.", 401), requestId);
+    logError(requestId, "Auth session error - Verification Failed", { 
+      error: String(error),
+      message: error?.message,
+      code: error?.code 
+    });
+    return withRequestId(apiError("UNAUTHORIZED", `Authentication failed: ${error?.message || 'Invalid or expired token.'}`, 401), requestId);
   }
 }

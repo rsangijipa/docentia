@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DashboardServiceFB, LessonPlanServiceFB } from '@/services/firebase/domain-services';
+import { DashboardService, LessonPlanService } from '@/services/supabase/domain-services';
 
 type DashboardPayload = {
   stats: {
@@ -32,30 +32,16 @@ type DashboardPayload = {
     id: string;
     topic?: string;
     content?: string;
-    date?: { seconds?: number; toDate?: () => Date } | string | Date;
-    nomeTurma?: string;
+    date?: string | Date;
+    nome_turma?: string;
   }>;
 };
 
-function formatAgendaTime(value: DashboardPayload['agenda'][number]['date']) {
+function formatAgendaTime(value: any) {
   if (!value) return '--:--';
-
-  if (typeof value === 'string' || value instanceof Date) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '--:--';
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  if (typeof value === 'object' && typeof value.toDate === 'function') {
-    return value.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  if (typeof value === 'object' && typeof value.seconds === 'number') {
-    const date = new Date(value.seconds * 1000);
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  return '--:--';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function DashboardHome() {
@@ -72,8 +58,8 @@ export default function DashboardHome() {
 
     try {
       const [statsData, agendaData] = await Promise.all([
-        DashboardServiceFB.getStats(user.id),
-        LessonPlanServiceFB.getDailyAgenda(user.id),
+        DashboardService.getStats(user.id),
+        (new LessonPlanService()).getDailyAgenda(user.id),
       ]);
 
       setData({
@@ -197,7 +183,7 @@ export default function DashboardHome() {
                 {agenda.map((item) => (
                   <div key={item.id} className="rounded-lg border p-4 flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-semibold text-slate-900">{item.nomeTurma || 'Turma'} - {item.topic || 'Sem topico'}</p>
+                      <p className="font-semibold text-slate-900">{item.nome_turma || 'Turma'} - {item.topic || 'Sem topico'}</p>
                       <p className="text-sm text-slate-600 mt-1">{item.content || 'Sem descricao cadastrada.'}</p>
                     </div>
                     <Badge variant="secondary">{formatAgendaTime(item.date)}</Badge>

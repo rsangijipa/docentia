@@ -87,12 +87,14 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   placeholder="admin@admin.com"
+                  aria-invalid={errors.email ? 'true' : 'false'}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   className={`pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition ${errors.email ? 'border-red-300 ring-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
                   {...register('email')}
                 />
               </div>
               {errors.email && (
-                <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
+                <p id="email-error" className="mt-2 text-sm text-red-600">{errors.email.message}</p>
               )}
             </div>
 
@@ -114,12 +116,14 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   placeholder="1234567890"
+                  aria-invalid={errors.password ? 'true' : 'false'}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                   className={`pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition ${errors.password ? 'border-red-300 ring-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
                   {...register('password')}
                 />
               </div>
               {errors.password && (
-                <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
+                <p id="password-error" className="mt-2 text-sm text-red-600">{errors.password.message}</p>
               )}
             </div>
 
@@ -156,7 +160,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="mt-6 text-center text-sm text-slate-500">
-              <p>Use sua conta Firebase.</p>
+              <p>Use sua conta Docentia.</p>
               <p>Se ainda nao tiver conta, clique em <b>crie uma conta gratuitamente</b>.</p>
             </div>
           </div>

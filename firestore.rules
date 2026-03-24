@@ -51,13 +51,17 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
         userId == request.auth.uid &&
         request.resource.data.id == request.auth.uid &&
-        request.resource.data.email == request.auth.token.email;
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.role == 'TEACHER' &&
+        (request.resource.data.schoolId == null || !('schoolId' in request.resource.data));
 
       allow update: if isSignedIn() && (
         (
           userId == request.auth.uid &&
           request.resource.data.id == resource.data.id &&
-          request.resource.data.email == resource.data.email
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.schoolId == resource.data.schoolId
         ) ||
         (isAdmin() && resource.data.schoolId == userSchoolId())
       );
@@ -114,6 +118,36 @@ service cloud.firestore {
     match /notifications/{docId} {
       allow read, update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /evaluations/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /evaluationResults/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /projects/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /textbooks/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+    }
+
+    match /templates/{docId} {
+      allow read: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
+      allow create: if isCreateOwnerByTeacher();
+      allow update, delete: if isOwnerByTeacher() || (isAdmin() && sameSchoolByResource());
     }
 
     match /{document=**} {

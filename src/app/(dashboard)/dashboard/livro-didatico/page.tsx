@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TextbookServiceFB, ClassroomServiceFB } from '@/services/firebase/domain-services';
+import { textbookService, classroomService } from '@/services/supabase/domain-services';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,18 +60,18 @@ export default function TextbookPage() {
 
   const { data: textbooks = [], isLoading } = useQuery({
     queryKey: ['textbooks', user?.id],
-    queryFn: () => user?.id ? TextbookServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? textbookService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const { data: turmas = [] } = useQuery({
     queryKey: ['classrooms', user?.id],
-    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => TextbookServiceFB.create(data),
+    mutationFn: (data: any) => textbookService.create(data),
     onSuccess: () => {
       toast.success('Livro registrado com sucesso!');
       setIsCreateOpen(false);
@@ -81,7 +81,7 @@ export default function TextbookPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => TextbookServiceFB.delete(id),
+    mutationFn: (id: string) => textbookService.delete(id),
     onSuccess: () => {
       toast.success('Livro removido.');
       setDeleteTarget(null);
@@ -90,8 +90,8 @@ export default function TextbookPage() {
   });
 
   const filteredBooks = textbooks.filter((b: any) =>
-    b.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.materia.toLowerCase().includes(searchTerm.toLowerCase())
+    (b.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.materia || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (isLoading) {
@@ -137,7 +137,16 @@ export default function TextbookPage() {
                 </div>
               </DialogHeader>
 
-              <form onSubmit={(e) => { e.preventDefault(); if (user?.id) createMutation.mutate({ ...newBook, teacherId: user.id }); }} className="p-10 space-y-6">
+              <form onSubmit={(e) => { e.preventDefault(); if (user?.id) createMutation.mutate({ 
+                titulo: newBook.titulo,
+                autor: newBook.autor,
+                materia: newBook.materia,
+                isbn: newBook.isbn,
+                turmas: newBook.turmas,
+                progresso_medio: newBook.progressoMedio,
+                teacher_id: user.id,
+                created_at: new Date().toISOString()
+               }); }} className="p-10 space-y-6">
                 <div className='space-y-5'>
                   <div className='space-y-2'>
                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Título do Livro</Label>
@@ -219,9 +228,9 @@ export default function TextbookPage() {
                 <div className="space-y-3 pt-2">
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
                     <span>Progresso do Ano</span>
-                    <span className="text-slate-900">{book.progressoMedio || 0}%</span>
+                    <span className="text-slate-900">{book.progresso_medio || 0}%</span>
                   </div>
-                  <Progress value={book.progressoMedio || 5} className="h-2 bg-slate-50" />
+                  <Progress value={book.progresso_medio || 5} className="h-2 bg-slate-50" />
                 </div>
               </div>
               <div className="p-8 bg-slate-50 group-hover:bg-white transition-colors border-t border-slate-100">

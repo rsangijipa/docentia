@@ -26,7 +26,7 @@ import { Progress } from '@/components/ui/progress';
 import { cn, formatDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ProjectServiceFB, ClassroomServiceFB } from '@/services/firebase/domain-services';
+import { projectService, classroomService } from '@/services/supabase/domain-services';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -61,18 +61,18 @@ export default function ProjetosPage() {
 
   const { data: projetos = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['projects', user?.id],
-    queryFn: () => user?.id ? ProjectServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? projectService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const { data: turmas = [] } = useQuery({
     queryKey: ['classrooms', user?.id],
-    queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => ProjectServiceFB.create(data),
+    mutationFn: (data: any) => projectService.create(data),
     onSuccess: () => {
       toast.success('Projeto criado com sucesso!');
       setIsCreateOpen(false);
@@ -92,7 +92,7 @@ export default function ProjetosPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => ProjectServiceFB.delete(id),
+    mutationFn: (id: string) => projectService.delete(id),
     onSuccess: () => {
       toast.success('Projeto removido.');
       setDeleteTarget(null);
@@ -105,16 +105,23 @@ export default function ProjetosPage() {
     e.preventDefault();
     if (!user?.id) return;
     createMutation.mutate({
-      ...newProject,
-      teacherId: user.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      titulo: newProject.titulo,
+      status: newProject.status,
+      progresso: newProject.progresso,
+      turmas: newProject.turmas,
+      data_inicio: newProject.dataInicio,
+      data_fim: newProject.dataFim,
+      tema: newProject.tema,
+      colaboradores: newProject.colaboradores,
+      teacher_id: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     });
   };
 
   const filteredProjetos = projetos.filter((p: any) =>
-    p.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.tema.toLowerCase().includes(searchTerm.toLowerCase())
+    (p.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.tema || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

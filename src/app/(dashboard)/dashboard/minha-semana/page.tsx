@@ -24,11 +24,11 @@ import { cn, formatDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import {
-    DiaryEntryServiceFB,
-    EvaluationServiceFB,
-    LessonPlanServiceFB,
-    ClassroomServiceFB
-} from '@/services/firebase/domain-services';
+    diaryEntryService,
+    evaluationService,
+    lessonPlanService,
+    classroomService
+} from '@/services/supabase/domain-services';
 
 export default function PendenciasPage() {
     const { user } = useAuth();
@@ -37,28 +37,28 @@ export default function PendenciasPage() {
     // Buscar Diários (para checar pendências de frequência)
     const { data: diarios = [], isLoading: loadingDiarios } = useQuery({
         queryKey: ['diaryEntries', user?.id],
-        queryFn: () => user?.id ? DiaryEntryServiceFB.getByTeacher(user.id) : [],
+        queryFn: () => user?.id ? diaryEntryService.getByTeacher(user.id) : [],
         enabled: !!user?.id
     });
 
     // Buscar Avaliações (para checar correções pendentes)
     const { data: avaliacoes = [], isLoading: loadingEvals } = useQuery({
         queryKey: ['evaluations', user?.id],
-        queryFn: () => user?.id ? EvaluationServiceFB.getByTeacher(user.id) : [],
+        queryFn: () => user?.id ? evaluationService.getByTeacher(user.id) : [],
         enabled: !!user?.id
     });
 
     // Buscar Planos de Aula (para mostrar roteiros futuros)
     const { data: planos = [], isLoading: loadingPlanos } = useQuery({
         queryKey: ['lessonPlans', user?.id],
-        queryFn: () => user?.id ? LessonPlanServiceFB.getByTeacher(user.id) : [],
+        queryFn: () => user?.id ? lessonPlanService.getByTeacher(user.id) : [],
         enabled: !!user?.id
     });
 
     // Buscar Turmas (para contexto)
     const { data: turmas = [] } = useQuery({
         queryKey: ['classrooms', user?.id],
-        queryFn: () => user?.id ? ClassroomServiceFB.getByTeacher(user.id) : [],
+        queryFn: () => user?.id ? classroomService.getByTeacher(user.id) : [],
         enabled: !!user?.id
     });
 
@@ -103,7 +103,7 @@ export default function PendenciasPage() {
         // Lógica simplificada: verificar se existe diário para o dia de hoje em cada turma
         turmas.forEach((t: any) => {
             const temDiarioHoje = diarios.some((d: any) =>
-                d.roomId === t.id &&
+                d.classroom_id === t.id &&
                 new Date(d.date).toDateString() === hoje.toDateString()
             );
 

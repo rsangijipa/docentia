@@ -21,12 +21,12 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import {
-  DiaryEntryServiceFB,
-  EvaluationServiceFB,
-  LessonPlanServiceFB,
-  StudentServiceFB,
-  ClassroomServiceFB
-} from '@/services/firebase/domain-services';
+  diaryEntryService,
+  evaluationService,
+  lessonPlanService,
+  studentService,
+  classroomService
+} from '@/services/supabase/domain-services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,25 +39,25 @@ export default function ReportsPage() {
 
   const { data: diaryEntries = [] } = useQuery({
     queryKey: ['diary-entries', user?.id],
-    queryFn: () => user?.id ? DiaryEntryServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? diaryEntryService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const { data: evaluations = [] } = useQuery({
     queryKey: ['evaluations', user?.id],
-    queryFn: () => user?.id ? EvaluationServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? evaluationService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const { data: lessonPlans = [] } = useQuery({
     queryKey: ['lesson-plans', user?.id],
-    queryFn: () => user?.id ? LessonPlanServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? lessonPlanService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
   const { data: students = [] } = useQuery({
     queryKey: ['students', user?.id],
-    queryFn: () => user?.id ? StudentServiceFB.getByTeacher(user.id) : [],
+    queryFn: () => user?.id ? studentService.getByTeacher(user.id) : [],
     enabled: !!user?.id
   });
 
